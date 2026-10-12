@@ -55,11 +55,12 @@
 
   &__grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--space-6);
 
     .week-card {
       display: grid;
+      min-width: 0;
       grid-template-columns: auto auto;
       grid-template-areas:
         'circle status'
@@ -109,7 +110,7 @@
       }
 
       &__stat-value {
-        font-size: var(--font-size-2xl);
+        font-size: var(--font-size-3xl);
         font-weight: var(--font-weight-bold);
         line-height: 1;
         color: var(--color-text-primary);
@@ -118,7 +119,7 @@
       &__stat-label {
         color: var(--color-text-secondary);
 
-        font-size: 1rem;
+        font-size: var(--font-size-md);
       }
 
       &__progress-ring {
@@ -166,8 +167,61 @@
       }
     }
 
+    .streak-card {
+      --streak-color: var(--color-score-great);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+
+      gap: var(--space-6);
+
+      padding: var(--space-8);
+
+      border: 1px solid color-mix(in srgb, var(--streak-color) 20%, var(--color-border));
+      border-radius: var(--radius-lg);
+
+      background: color-mix(in srgb, var(--streak-color) 8%, var(--color-surface));
+
+      &__icon {
+        display: grid;
+        place-items: center;
+
+        width: var(--font-size-4xl);
+        height: var(--font-size-4xl);
+
+        border-radius: var(--radius-md);
+
+        background: color-mix(in srgb, var(--streak-color) 20%, var(--color-surface));
+        color: var(--streak-color);
+
+        font-size: var(--font-size-2xl);
+      }
+
+      &__content {
+        display: flex;
+        flex-direction: column;
+
+        gap: var(--space-2);
+      }
+
+      &__value {
+        color: var(--color-text-primary);
+
+        font-size: var(--font-size-3xl);
+        font-weight: var(--font-weight-bold);
+        line-height: 1;
+      }
+
+      &__label {
+        color: var(--color-text-secondary);
+
+        font-size: var(--font-size-md);
+      }
+    }
+
     .today-card {
       display: grid;
+      min-width: 0;
       grid-template-columns: auto 1fr auto;
       grid-template-areas:
         'title title date'
@@ -233,7 +287,7 @@
       }
 
       &__stat-value {
-        font-size: 2.5rem;
+        font-size: var(--font-size-3xl);
         font-weight: var(--font-weight-bold);
         line-height: 1;
 
@@ -249,7 +303,7 @@
       &__stat-label {
         color: var(--color-text-secondary);
 
-        font-size: 1rem;
+        font-size: var(--font-size-md);
       }
 
       &__action {
@@ -275,6 +329,7 @@
           border-color 150ms ease;
 
         &:hover {
+          background: var(--color-surface-active);
           color: var(--color-text-primary);
         }
       }
@@ -315,6 +370,22 @@
         font-size: 1rem;
         font-weight: 600;
       }
+      @media (max-width: 1300px) {
+        grid-template-columns: auto 1fr;
+        grid-template-areas:
+          'title date'
+          'score stats'
+          'action action';
+
+        &__action {
+          justify-self: stretch;
+          text-align: center;
+        }
+      }
+    }
+
+    @media (max-width: 900px) {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 }

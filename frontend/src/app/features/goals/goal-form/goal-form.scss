@@ -49,12 +49,13 @@
     padding-bottom: 4px;
     border: 0;
     border-radius: var(--radius-sm);
-    background: var(--color-surface-active);
+    background: var(--color-surface-hover);
     font-size: var(--space-6);
     cursor: pointer;
     color: var(--color-text-secondary);
 
     &:hover {
+      background: var(--color-surface-active);
       color: var(--color-text-primary);
     }
   }
@@ -108,6 +109,11 @@
         border: 0;
         border-radius: 50%;
       }
+    }
+    &:hover {
+      border: 1px solid var(--goal-color);
+      border-radius: 50%;
+      padding: 1px;
     }
   }
 
@@ -189,6 +195,7 @@
 
     &:hover span {
       background: var(--color-surface-hover);
+      border-color: var(--goal-color);
     }
 
     input:checked + span {

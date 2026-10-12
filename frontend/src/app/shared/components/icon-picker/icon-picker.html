@@ -28,8 +28,11 @@
     >
       <div class="icon-picker__popover" [style.--goal-color]="color()">
         <input
+          #searchInput
           type="search"
           class="icon-picker__search"
+          aria-label="Search icons"
+          autofocus
           placeholder="Search icons..."
           [value]="search()"
           (input)="onSearch($event)"

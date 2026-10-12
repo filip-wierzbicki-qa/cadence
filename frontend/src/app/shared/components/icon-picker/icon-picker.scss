@@ -13,6 +13,10 @@
     border-radius: var(--radius-md);
     background-color: color-mix(in srgb, var(--goal-color) 20%, black);
     cursor: pointer;
+
+    &:hover {
+      border-color: var(--goal-color);
+    }
   }
 
   &__selected-icon {
@@ -43,6 +47,12 @@
     background: var(--color-surface-active);
     color: inherit;
     outline: none;
+
+    &::-webkit-search-cancel-button {
+      filter: brightness(0) invert(1);
+
+      cursor: pointer;
+    }
   }
 
   &__grid {
@@ -52,6 +62,30 @@
     max-height: 14rem;
     margin-top: 0.75rem;
     overflow-y: auto;
+
+    scrollbar-width: thin;
+
+    scrollbar-color: var(--color-border) transparent;
+
+    // Chrome / Edge / Safari
+
+    &::-webkit-scrollbar {
+      width: 5px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+
+      border-radius: var(--radius-pill);
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: var(--color-text-secondary);
+    }
   }
 
   &__option {
@@ -66,13 +100,12 @@
     cursor: pointer;
 
     &:hover {
-      background: var(--color-surface-secondary);
+      border-color: var(--goal-color);
     }
 
     &--selected {
-      border-color: var(--color-border);
+      border-color: var(--goal-color);
       color: inherit;
-      background: var(--color-surface-secondary);
     }
 
     img {

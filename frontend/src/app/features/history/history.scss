@@ -18,6 +18,7 @@
 
     &__bottom {
       display: flex;
+      gap: var(--space-2);
 
       button {
         background: transparent;
@@ -25,8 +26,17 @@
         color: var(--color-text-secondary);
         cursor: pointer;
 
-        &.selectedDate {
+        &:hover {
+          color: var(--color-text-primary);
           background: var(--color-surface-hover);
+          color: var(--color-text-primary);
+          border-radius: var(--radius-lg);
+          padding: var(--space-2);
+        }
+
+        &.selectedDate {
+          background: var(--color-surface-active);
+          color: var(--color-text-primary);
           border-radius: var(--radius-lg);
           padding: var(--space-2);
         }

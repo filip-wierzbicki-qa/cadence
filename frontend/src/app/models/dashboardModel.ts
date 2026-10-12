@@ -9,7 +9,13 @@ export interface DashboardWeekResponse {
   days_count: number;
 }
 
+export interface DashboardStreakResponse {
+  current: number;
+  longest: number;
+}
+
 export interface DashboardResponse {
   today: DashboardTodayResponse;
   week: DashboardWeekResponse;
+  streak: DashboardStreakResponse;
 }

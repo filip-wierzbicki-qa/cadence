@@ -1,4 +1,13 @@
-import { Component, computed, effect, input, output, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  input,
+  output,
+  signal,
+  ViewChild,
+} from '@angular/core';
 import { ConnectedPosition, OverlayModule } from '@angular/cdk/overlay';
 
 import { buildLucideDataUri } from '@lucide/icons/build';
@@ -27,6 +36,9 @@ export class IconPicker {
   readonly icons = signal<IconOption[]>([]);
   readonly selectedIconSrc = signal<string | null>(null);
   readonly isLoading = signal(false);
+
+  @ViewChild('searchInput')
+  searchInput?: ElementRef<HTMLInputElement>;
 
   readonly overlayPositions: ConnectedPosition[] = [
     {
@@ -83,6 +95,9 @@ export class IconPicker {
 
     if (this.isOpen()) {
       void this.loadVisibleIcons();
+      setTimeout(() => {
+        this.searchInput?.nativeElement.focus();
+      });
     }
   }
 

@@ -5,10 +5,11 @@ import { DashboardService } from '@core/api/dashboard.service';
 import { RouterLink } from '@angular/router';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { AuthService } from '@core/services/auth.service';
+import { LucideFlame, LucideTrophy } from '@lucide/angular';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, DatePipe, DecimalPipe],
+  imports: [RouterLink, DatePipe, DecimalPipe, LucideFlame, LucideTrophy],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
@@ -36,7 +37,7 @@ export class Dashboard implements OnInit {
 
   getScoreColor(progress: number | null): string {
     if (progress === null) {
-      return 'var(--color-score-great)';
+      return 'var(--color-score-good)';
     }
 
     if (progress > 90) {
@@ -92,5 +93,21 @@ export class Dashboard implements OnInit {
     }
 
     return 'Focus, you need to work a bit more on your progress.';
+  }
+
+  getStreakColor(streak: number): string {
+    if (streak >= 14) {
+      return 'var(--color-score-great)';
+    }
+
+    if (streak >= 7) {
+      return 'var(--color-score-good)';
+    }
+
+    if (streak >= 3) {
+      return 'var(--color-score-could-do-more)';
+    }
+
+    return 'var(--color-score-needs-work)';
   }
 }

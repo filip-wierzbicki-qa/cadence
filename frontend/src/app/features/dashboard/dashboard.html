@@ -20,7 +20,11 @@
           [style.--background]="getScoreColor(dashboard.week.score)"
         >
           <div class="week-card__progress-ring-inner">
-            {{ dashboard.week.score | number: '1.0-0' }}%
+            @if (dashboard.week.score !== null) {
+              {{ dashboard.week.score | number: '1.0-0' }}%
+            } @else {
+              -
+            }
             <span class="week-card__progress-ring-label">this week</span>
           </div>
         </div>
@@ -73,6 +77,41 @@
         </div>
 
         <a class="today-card__action" routerLink="/today"> Open today → </a>
+      </section>
+      <section
+        class="streak-card"
+        [style.--streak-color]="getStreakColor(dashboard.streak.current)"
+      >
+        <div class="streak-card__icon">
+          <svg lucideFlame></svg>
+        </div>
+
+        <div class="streak-card__content">
+          <div class="streak-card__value">
+            {{ dashboard.streak.current }}
+          </div>
+
+          <div class="streak-card__label">
+            {{ dashboard.streak.current === 1 ? 'day streak' : 'days streak' }}
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="streak-card"
+        [style.--streak-color]="getStreakColor(dashboard.streak.longest)"
+      >
+        <div class="streak-card__icon">
+          <svg lucideTrophy></svg>
+        </div>
+
+        <div class="streak-card__content">
+          <div class="streak-card__value">
+            {{ dashboard.streak.longest }}
+          </div>
+
+          <div class="streak-card__label">longest streak</div>
+        </div>
       </section>
     </div>
   </div>
