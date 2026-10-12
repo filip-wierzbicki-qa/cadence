@@ -12,6 +12,12 @@ class DashboardPeriodResponse(BaseModel):
     days_count: int
 
 
+class DashboardStreakResponse(BaseModel):
+    current: int
+    longest: int
+
+
 class DashboardResponse(BaseModel):
     today: DashboardTodayResponse
     week: DashboardPeriodResponse
+    streak: DashboardStreakResponse

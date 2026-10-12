@@ -1,10 +1,13 @@
-from datetime import timedelta
+from datetime import date, timedelta
 from uuid import UUID
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.goal import Goal
 from app.schemas.dashboard import DashboardResponse
 from app.services.progress_service import (
+    WARSAW_TIMEZONE,
     calculate_daily_progress,
     calculate_progress_range,
     get_warsaw_today,
@@ -17,30 +20,38 @@ async def get_dashboard(
 ) -> DashboardResponse:
     today = get_warsaw_today()
     week_start = today - timedelta(days=today.weekday())
-    week_end = today - timedelta(days=1)
     weekly_scores: list[float] = []
-    weekly_score = 0.0
+    weekly_score: float | None = None
+    history: list[dict] = []
 
     daily_progress = await calculate_daily_progress(
         session=session,
         owner_id=owner_id,
         reference_date=today,
     )
-    if week_start <= week_end:
-        week_progress = await calculate_progress_range(
+    first_goal_date = await get_first_goal_date(
+        session=session,
+        owner_id=owner_id,
+    )
+
+    if first_goal_date is not None and first_goal_date < today:
+        history = await calculate_progress_range(
             session=session,
             owner_id=owner_id,
-            date_from=week_start,
-            date_to=week_end,
+            date_from=first_goal_date,
+            date_to=today - timedelta(days=1),
         )
 
-        weekly_scores = [
-            day["daily_score"]
-            for day in week_progress
-            if day["daily_score"] is not None
-        ]
+    current_streak, longest_streak = calculate_streaks(history)
+    weekly_scores = [
+        day["daily_score"]
+        for day in history
+        if day["date"] >= week_start and day["daily_score"] is not None
+    ]
 
-        weekly_score = round(sum(weekly_scores) / len(weekly_scores), 2)
+    weekly_score = (
+        round(sum(weekly_scores) / len(weekly_scores), 2) if weekly_scores else None
+    )
 
     return {
         "today": {
@@ -52,4 +63,51 @@ async def get_dashboard(
             "score": weekly_score,
             "days_count": len(weekly_scores),
         },
+        "streak": {
+            "current": current_streak,
+            "longest": longest_streak,
+        },
     }
+
+
+async def get_first_goal_date(
+    session: AsyncSession,
+    owner_id: UUID,
+) -> date | None:
+    created_at = await session.scalar(
+        select(func.min(Goal.created_at)).where(
+            Goal.owner_id == owner_id,
+            Goal.is_active.is_(True),
+        )
+    )
+
+    if created_at is None:
+        return None
+
+    if created_at.tzinfo is None:
+        return created_at.date()
+
+    return created_at.astimezone(WARSAW_TIMEZONE).date()
+
+
+def calculate_streaks(
+    daily_progress: list[dict],
+    great_threshold: float = 90,
+) -> tuple[int, int]:
+    current_streak = 0
+    longest_streak = 0
+    running_streak = 0
+
+    for day in daily_progress:
+        score = day["daily_score"]
+
+        if score is not None and score > great_threshold:
+            running_streak += 1
+        else:
+            running_streak = 0
+
+        longest_streak = max(longest_streak, running_streak)
+
+    current_streak = running_streak
+
+    return current_streak, longest_streak
