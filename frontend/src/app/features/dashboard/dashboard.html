@@ -1,118 +1,142 @@
-@if (isLoading()) {
-  <div class="dashboard__empty">
-    <h2 class="dashboard__empty-title">Loading...</h2>
+@if (dashboard.error()) {
+  <div class="dashboard__empty" role="alert">
+    <h2 class="dashboard__empty-title">Couldn't load your dashboard</h2>
 
-    <p class="dashboard__empty-text">Your stats are being calculated.</p>
+    <p class="dashboard__empty-text">Check your connection and try again.</p>
+
+    <button class="dashboard__retry" type="button" (click)="dashboard.reload()">Try again</button>
   </div>
-} @else if (dashboard(); as dashboard) {
+} @else if (data(); as data) {
   <div class="dashboard">
-    <div class="dashboard__header">
-      <div class="dashboard__header-user">Hello, {{ currentUser()?.display_name }}.</div>
-      <div class="dashboard__header-month">
-        {{ today | date: 'EEEE, MMMM d' }} · {{ getScoreDescription(dashboard.week.score) }}
-      </div>
-    </div>
+    <header class="dashboard__header">
+      <h1 class="dashboard__title">Hello, {{ currentUser()?.display_name }}.</h1>
+      <p class="dashboard__subtitle">
+        {{ today | date: 'EEEE, MMMM d' }} · {{ weekBand().description }}
+      </p>
+    </header>
+
     <div class="dashboard__grid">
-      <section class="week-card">
+      <section class="week-card" aria-label="This week">
         <div
-          class="week-card__progress-ring"
-          [style.--score]="dashboard.week.score"
-          [style.--background]="getScoreColor(dashboard.week.score)"
+          class="week-card__ring score-ring"
+          role="img"
+          [attr.aria-label]="
+            data.week.score === null
+              ? 'This week: no score'
+              : 'This week: ' + (data.week.score | number: '1.0-0') + '%, ' + weekBand().label
+          "
+          [style.--score]="data.week.score ?? 0"
+          [style.--tone]="weekBand().color"
         >
-          <div class="week-card__progress-ring-inner">
-            @if (dashboard.week.score !== null) {
-              {{ dashboard.week.score | number: '1.0-0' }}%
-            } @else {
-              -
-            }
-            <span class="week-card__progress-ring-label">this week</span>
+          <div class="score-ring__inner" aria-hidden="true">
+            <span class="score-ring__value">
+              @if (data.week.score !== null) {
+                {{ data.week.score | number: '1.0-0' }}%
+              } @else {
+                –
+              }
+            </span>
+            <span class="score-ring__label">this week</span>
           </div>
         </div>
-        <div class="week-card__status" [style.--background]="getScoreColor(dashboard.week.score)">
-          {{ getScoreLabel(dashboard.week.score) }}
+
+        <div class="week-card__status" [style.--tone]="weekBand().color">
+          {{ weekBand().label }}
         </div>
+
         <div class="week-card__stats">
-          <div class="week-card__stat">
-            <span class="week-card__stat-value">
-              {{ dashboard.week.days_count }}
-            </span>
-
-            <span class="week-card__stat-label"> days counted </span>
+          <div class="stat">
+            <span class="stat__value">{{ data.week.days_count }}</span>
+            <span class="stat__label">{{ data.week.days_count === 1 ? 'day' : 'days' }} counted</span>
           </div>
         </div>
       </section>
-      <section class="today-card">
-        <h2 class="today-card__title">Today so far</h2>
 
-        <span class="today-card__date">
-          {{ today | date: 'MMM d' }}
-        </span>
+      <section class="today-card" aria-labelledby="today-card-title">
+        <div class="today-card__inner">
+          <h2 class="today-card__title" id="today-card-title">Today so far</h2>
 
-        <div
-          class="today-card__progress-ring"
-          [style.--score]="dashboard.today.score"
-          [style.--background]="getScoreColor(dashboard.today.score)"
-        >
-          <div class="today-card__progress-ring-inner">
-            {{ dashboard.today.score | number: '1.0-0' }}%
+          <span class="today-card__date">{{ today | date: 'MMM d' }}</span>
+
+          <div
+            class="today-card__ring score-ring"
+            role="img"
+            [attr.aria-label]="
+              data.today.score === null
+                ? 'Today: no score yet'
+                : 'Today: ' + (data.today.score | number: '1.0-0') + '%, ' + todayBand().label
+            "
+            [style.--score]="data.today.score ?? 0"
+            [style.--tone]="todayBand().color"
+          >
+            <div class="score-ring__inner" aria-hidden="true">
+              <span class="score-ring__value">
+                @if (data.today.score !== null) {
+                  {{ data.today.score | number: '1.0-0' }}%
+                } @else {
+                  –
+                }
+              </span>
+            </div>
           </div>
+
+          <div class="today-card__stats">
+            <div class="stat">
+              <span class="stat__value stat__value--positive">
+                {{ data.today.scored_components_count }}
+              </span>
+              <span class="stat__label">scored</span>
+            </div>
+
+            <div class="stat">
+              <span class="stat__value stat__value--warning">
+                {{ data.today.pending_components_count }}
+              </span>
+              <span class="stat__label">pending</span>
+            </div>
+          </div>
+
+          <a class="today-card__action" routerLink="/today">Open today →</a>
         </div>
-
-        <div class="today-card__stats">
-          <div class="today-card__stat">
-            <span class="today-card__stat-value today-card__stat-value--positive">
-              {{ dashboard.today.scored_components_count }}
-            </span>
-
-            <span class="today-card__stat-label"> scored </span>
-          </div>
-
-          <div class="today-card__stat">
-            <span class="today-card__stat-value today-card__stat-value--warning">
-              {{ dashboard.today.pending_components_count }}
-            </span>
-
-            <span class="today-card__stat-label"> pending </span>
-          </div>
-        </div>
-
-        <a class="today-card__action" routerLink="/today"> Open today → </a>
       </section>
-      <section
-        class="streak-card"
-        [style.--streak-color]="getStreakColor(dashboard.streak.current)"
-      >
+
+      <section class="streak-card" [style.--tone]="currentStreakColor()">
         <div class="streak-card__icon">
-          <svg lucideFlame></svg>
+          <svg lucideFlame aria-hidden="true"></svg>
         </div>
 
         <div class="streak-card__content">
-          <div class="streak-card__value">
-            {{ dashboard.streak.current }}
-          </div>
-
-          <div class="streak-card__label">
-            {{ dashboard.streak.current === 1 ? 'day streak' : 'days streak' }}
-          </div>
+          <div class="streak-card__value">{{ data.streak.current }}</div>
+          <div class="streak-card__label">day streak</div>
         </div>
       </section>
 
-      <section
-        class="streak-card"
-        [style.--streak-color]="getStreakColor(dashboard.streak.longest)"
-      >
+      <section class="streak-card" [style.--tone]="longestStreakColor()">
         <div class="streak-card__icon">
-          <svg lucideTrophy></svg>
+          <svg lucideTrophy aria-hidden="true"></svg>
         </div>
 
         <div class="streak-card__content">
-          <div class="streak-card__value">
-            {{ dashboard.streak.longest }}
-          </div>
-
+          <div class="streak-card__value">{{ data.streak.longest }}</div>
           <div class="streak-card__label">longest streak</div>
         </div>
       </section>
+    </div>
+  </div>
+} @else {
+  <div class="dashboard" aria-busy="true">
+    <span class="dashboard__sr-only" role="status">Loading your dashboard…</span>
+
+    <header class="dashboard__header" aria-hidden="true">
+      <div class="skeleton skeleton--title"></div>
+      <div class="skeleton skeleton--subtitle"></div>
+    </header>
+
+    <div class="dashboard__grid" aria-hidden="true">
+      <div class="skeleton skeleton--card"></div>
+      <div class="skeleton skeleton--card"></div>
+      <div class="skeleton skeleton--card"></div>
+      <div class="skeleton skeleton--card"></div>
     </div>
   </div>
 }
