@@ -75,3 +75,35 @@ button {
     }
   }
 }
+
+// Busy, not unavailable: keep the button at full strength so the spinner reads as progress.
+button[aria-busy='true']:disabled {
+  opacity: 1;
+  cursor: progress;
+}
+
+.spinner {
+  flex: none;
+
+  width: 1rem;
+  aspect-ratio: 1;
+
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+
+  animation: button-spin 700ms linear infinite;
+}
+
+@keyframes button-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// A spinning ring is functional feedback, but make it calm for people who asked for less motion.
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2s;
+  }
+}

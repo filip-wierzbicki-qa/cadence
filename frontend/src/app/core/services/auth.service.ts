@@ -24,9 +24,7 @@ export class AuthService {
   }
 
   register(credentials: RegisterRequest): Observable<RegisterResponse> {
-    return this.http
-      .post<RegisterResponse>(`${this.apiAuthUrl}/register`, credentials)
-      .pipe(tap((response) => console.log(response)));
+    return this.http.post<RegisterResponse>(`${this.apiAuthUrl}/register`, credentials);
   }
 
   getAccessToken(): string | null {

@@ -2,6 +2,7 @@
   display: grid;
   grid-template-columns: minmax(420px, 1fr) minmax(420px, 560px);
   min-height: 100vh;
+  min-height: 100dvh;
   background: var(--color-background);
 
   .hero {
@@ -70,15 +71,20 @@
     p {
       position: relative;
       font-size: var(--font-size-sm);
-      color: #7c828c;
+      color: var(--color-text-secondary);
     }
   }
 
   .content {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 48px;
+
+    &__brand {
+      display: none;
+    }
   }
 }
 
@@ -92,6 +98,13 @@
 
     .content {
       padding: 24px;
+
+      &__brand {
+        display: flex;
+        align-self: flex-start;
+
+        margin-bottom: var(--space-8);
+      }
     }
   }
 }

@@ -1,6 +1,6 @@
 <div class="register">
   <a class="back-link" routerLink="/login">
-    <svg lucideArrowLeft></svg>
+    <svg lucideArrowLeft aria-hidden="true"></svg>
     Back to sign in
   </a>
 
@@ -10,51 +10,49 @@
   <form [formGroup]="registerForm" (ngSubmit)="submit()">
     <app-input
       formControlName="username"
-      label="Username"
+      label="Name"
       type="text"
-      placeholder="Name"
+      autocomplete="nickname"
+      placeholder="What should we call you?"
       [autoFocus]="true"
-      [tabIndex]="1"
     />
+
     <app-input
       formControlName="email"
       label="Email"
       type="email"
+      autocomplete="email"
       placeholder="you@email.com"
-      [tabIndex]="2"
     />
+
     <app-input
       formControlName="password"
       label="Password"
       type="password"
+      autocomplete="new-password"
       placeholder="••••••••"
-      [tabIndex]="3"
     />
+    <p class="hint">At least {{ minPasswordLength }} characters.</p>
+
     <app-input
       formControlName="confirmPassword"
-      label="Confirm Password"
+      label="Confirm password"
       type="password"
+      autocomplete="new-password"
       placeholder="••••••••"
-      [tabIndex]="5"
     />
 
-    <app-button
-      type="submit"
-      style="margin-top: 10px"
-      [disabled]="registerForm.invalid || isSubmitting()"
-      [tabIndex]="6"
-    >
-      @if (isSubmitting()) {
-        <span class="spinner" aria-hidden="true"></span>
-        <span>Creating account...</span>
-      } @else {
-        Create account
-      }
+    @if (errorMessage(); as message) {
+      <p class="banner banner--error" role="alert">{{ message }}</p>
+    }
+
+    <app-button type="submit" [loading]="isSubmitting()" [disabled]="registerForm.invalid">
+      {{ isSubmitting() ? 'Creating account…' : 'Create account' }}
     </app-button>
   </form>
 
   <p class="footer">
     Already have an account?
-    <a routerLink="/login" [tabindex]="7">Sign in</a>
+    <a routerLink="/login">Sign in</a>
   </p>
 </div>

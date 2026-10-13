@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import {
   AbstractControl,
@@ -8,32 +9,37 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-
-import { Button } from '@shared/ui/button/button';
-import { InputComponent } from '@shared/ui/input/input';
 import { LucideArrowLeft } from '@lucide/angular';
-import { AuthService } from '@core/services/auth.service';
-import { HttpErrorResponse } from '@angular/common/http';
 import { finalize } from 'rxjs';
 
+import { AuthService } from '@core/services/auth.service';
+import { Button } from '@shared/ui/button/button';
+import { InputComponent } from '@shared/ui/input/input';
+
+export const MIN_PASSWORD_LENGTH = 8;
+
+/**
+ * Reports a mismatch on the confirmation field, where the user will look for it, without
+ * touching any other error that field already has (such as `required`).
+ */
 export const passwordsMatchValidator: ValidatorFn = (
   control: AbstractControl,
 ): ValidationErrors | null => {
-  const passwordControl = control.get('password');
-  const confirmPasswordControl = control.get('confirmPassword');
+  const password = control.get('password');
+  const confirmPassword = control.get('confirmPassword');
 
-  if (!passwordControl || !confirmPasswordControl) {
+  if (!password || !confirmPassword) {
     return null;
   }
 
-  const password = passwordControl.value;
-  const confirmPassword = confirmPasswordControl.value;
+  const { passwordMismatch, ...otherErrors } = confirmPassword.errors ?? {};
+  void passwordMismatch;
 
-  if (password !== confirmPassword) {
-    confirmPasswordControl.setErrors({ passwordMismatch: true });
-  } else {
-    confirmPasswordControl.setErrors(null);
-  }
+  const mismatch = !!confirmPassword.value && password.value !== confirmPassword.value;
+  const errors = mismatch ? { ...otherErrors, passwordMismatch: true } : otherErrors;
+
+  confirmPassword.setErrors(Object.keys(errors).length ? errors : null);
+
   return null;
 };
 
@@ -47,13 +53,16 @@ export class Register {
   private readonly formBuilder = inject(FormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+
+  readonly minPasswordLength = MIN_PASSWORD_LENGTH;
   readonly isSubmitting = signal(false);
+  readonly errorMessage = signal<string | null>(null);
 
   readonly registerForm = this.formBuilder.nonNullable.group(
     {
       username: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', Validators.required],
+      password: ['', [Validators.required, Validators.minLength(MIN_PASSWORD_LENGTH)]],
       confirmPassword: ['', Validators.required],
     },
     {
@@ -62,7 +71,8 @@ export class Register {
   );
 
   constructor() {
-    this.registerForm.get('password')?.valueChanges.subscribe(() => {
+    // The group validator only runs when its own value changes; re-check when the password does.
+    this.registerForm.controls.password.valueChanges.subscribe(() => {
       this.registerForm.updateValueAndValidity({ emitEvent: false });
     });
   }
@@ -72,44 +82,36 @@ export class Register {
       this.registerForm.markAllAsTouched();
       return;
     }
+
     const { email, password, username } = this.registerForm.getRawValue();
+
     this.isSubmitting.set(true);
+    this.errorMessage.set(null);
 
     this.authService
       .register({ email, password, username })
-      .pipe(
-        finalize(() => {
-          this.isSubmitting.set(false);
-        }),
-      )
+      .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
         next: () => {
-          this.router.navigate(['/login']);
+          this.router.navigate(['/login'], { state: { registered: true, email } });
         },
         error: (error: HttpErrorResponse) => {
-          console.error(error);
-          if (error.status === 401) {
-            this.registerForm.controls.password.setErrors({
-              invalidCredentials: true,
-            });
-            return;
-          }
-          if (error.status === 422) {
-            this.registerForm.controls.username.setErrors({
-              accountExists: true,
-            });
-            return;
-          }
-          if (error.status === 0) {
-            this.registerForm.controls.username.setErrors({
-              serverUnavailable: true,
-            });
-            return;
-          }
-          this.registerForm.controls.username.setErrors({
-            unknownError: true,
-          });
+          this.errorMessage.set(this.describe(error));
         },
       });
+  }
+
+  private describe(error: HttpErrorResponse): string {
+    switch (error.status) {
+      case 409:
+      case 422:
+        return 'An account with these details already exists. Try signing in instead.';
+      case 429:
+        return 'Too many attempts. Wait a moment and try again.';
+      case 0:
+        return "Can't reach Cadence. Check your connection and try again.";
+      default:
+        return 'Something went wrong. Please try again.';
+    }
   }
 }

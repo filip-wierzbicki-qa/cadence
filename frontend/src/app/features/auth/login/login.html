@@ -1,14 +1,18 @@
 <div class="login">
   <h1>Welcome back</h1>
-  <p>Sign in to pick up where you left off.</p>
+  <p class="subtitle">Sign in to pick up where you left off.</p>
 
   <form [formGroup]="loginForm" (ngSubmit)="login()">
+    @if (justRegistered()) {
+      <p class="banner banner--success" role="status">Account created. Sign in to continue.</p>
+    }
+
     <app-input
       formControlName="email"
       label="Email"
       type="email"
+      autocomplete="username"
       [autoFocus]="true"
-      [tabIndex]="1"
       placeholder="you@email.com"
     />
 
@@ -16,26 +20,26 @@
       formControlName="password"
       label="Password"
       type="password"
-      [tabIndex]="2"
+      autocomplete="current-password"
       placeholder="••••••••"
-    >
-      <a input-action class="forgot-link" routerLink="/forgot-password" [tabIndex]="5"> Forgot? </a>
-    </app-input>
+    />
+
+    <a class="link" routerLink="/forgot-password">Forgot password?</a>
+
+    @if (errorMessage(); as message) {
+      <p class="banner banner--error" role="alert">{{ message }}</p>
+    }
 
     <app-button
-      [type]="'submit'"
-      [disabled]="loginForm.invalid || isSubmitting()"
-      [variant]="'primary'"
-      [tabIndex]="4"
+      type="submit"
+      variant="primary"
+      [loading]="isSubmitting()"
+      [disabled]="loginForm.invalid"
     >
-      @if (isSubmitting()) {
-        <span class="spinner" aria-hidden="true"></span>
-        <span>Signing in...</span>
-      } @else {
-        <span>Sign in</span>
-      }
+      {{ isSubmitting() ? 'Signing in…' : 'Sign in' }}
     </app-button>
   </form>
+
   <p class="footer">
     New to Cadence?
     <a routerLink="/register">Sign up</a>

@@ -9,7 +9,7 @@
         quiet place.
       </p>
 
-      <div class="chips">
+      <div class="chips" aria-hidden="true">
         <span>Steps</span>
         <span>Calories</span>
         <span>Study</span>
@@ -20,6 +20,11 @@
   </aside>
 
   <main class="content">
+    <!-- The hero is hidden on small screens, so the brand moves above the form. -->
+    <div class="content__brand">
+      <app-logo />
+    </div>
+
     <router-outlet />
   </main>
 </div>

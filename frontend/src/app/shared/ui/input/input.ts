@@ -21,6 +21,8 @@ import {
   ValidationErrors,
 } from '@angular/forms';
 
+let nextInputId = 0;
+
 @Component({
   selector: 'app-input',
   imports: [LucideEye, LucideEyeClosed],
@@ -45,6 +47,12 @@ export class InputComponent implements ControlValueAccessor, OnInit, AfterViewIn
   readonly autoSelect = input(false);
   readonly tabIndex = input<number>(0);
   readonly variant = input<'default' | 'filled' | 'entry'>('default');
+  /** Hint for browser and password-manager autofill, e.g. `email`, `current-password`. */
+  readonly autocomplete = input<string | null>(null);
+
+  /** Ties the visible label and the error message to the real input. */
+  readonly inputId = `app-input-${nextInputId++}`;
+  readonly errorId = `${this.inputId}-error`;
   /**
    * When validation messages become eligible to show: after the field was left (`touched`, the
    * default) or only once the user has changed it (`dirty`). `dirty` keeps a freshly opened,

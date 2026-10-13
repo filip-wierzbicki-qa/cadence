@@ -1,7 +1,7 @@
 <div class="input" [class.entry]="variant() === 'entry'">
   <div class="header">
     @if (label()) {
-      <label>{{ label() }}</label>
+      <label [for]="inputId">{{ label() }}</label>
     }
     <ng-content select="[input-action]" />
   </div>
@@ -9,10 +9,14 @@
   <div class="control" [class.invalid]="hasError()">
     <input
       #input
+      [id]="inputId"
       [type]="inputType()"
       [placeholder]="placeholder()"
       [value]="value()"
       [attr.inputmode]="inputMode()"
+      [attr.autocomplete]="autocomplete()"
+      [attr.aria-invalid]="hasError() || null"
+      [attr.aria-describedby]="errorMessage() ? errorId : null"
       [min]="min()"
       [max]="max()"
       class="input__control"
@@ -28,8 +32,8 @@
     @if (type() === 'password') {
       <button
         type="button"
-        aria-label="Toggle password visibility"
-        [attr.tabindex]="tabIndex() + 1"
+        [attr.aria-label]="passwordVisible() ? 'Hide password' : 'Show password'"
+        [attr.aria-pressed]="passwordVisible()"
         [disabled]="disabled()"
         (click)="togglePassword()"
       >
@@ -42,7 +46,7 @@
     }
   </div>
   @if (errorMessage(); as message) {
-    <span class="error-message" role="alert">
+    <span class="error-message" role="alert" [id]="errorId">
       {{ message }}
     </span>
   } @else {
