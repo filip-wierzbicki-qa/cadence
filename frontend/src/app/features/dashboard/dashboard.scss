@@ -1,32 +1,15 @@
+@use '../../../styles/utilities/mixins' as m;
+
 // ---------------------------------------------------------------------------
-// Tokens & mixins
+// Local mixins
 // ---------------------------------------------------------------------------
-
-// Animatable so the ring can fill from 0 to the score.
-@property --score {
-  syntax: '<number>';
-  inherits: false;
-  initial-value: 0;
-}
-
-@keyframes score-ring-fill {
-  from {
-    --score: 0;
-  }
-}
-
-@keyframes skeleton-pulse {
-  50% {
-    opacity: 0.55;
-  }
-}
 
 @mixin card {
   min-width: 0;
   padding: var(--space-7);
 
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
 
   background: var(--color-surface);
 }
@@ -39,83 +22,12 @@
   line-height: 1;
 }
 
-@mixin score-ring($size, $thickness) {
-  --score: 0;
-  --tone: var(--color-score-great);
-
-  display: grid;
-  place-items: center;
-
-  width: $size;
-  aspect-ratio: 1;
-
-  border-radius: 50%;
-
-  background: conic-gradient(
-    var(--tone) calc(var(--score) * 1%),
-    color-mix(in srgb, var(--tone) 25%, var(--color-surface)) 0
-  );
-
-  // Critically damped feel: fast start, no overshoot.
-  animation: score-ring-fill 600ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
-
-  .score-ring__inner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-
-    width: calc(100% - #{$thickness} * 2);
-    aspect-ratio: 1;
-
-    border-radius: 50%;
-
-    background: color-mix(in srgb, var(--tone) 10%, var(--color-surface));
-
-    color: var(--color-text-primary);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
+%score-ring {
+  @include m.score-ring;
 }
 
 %pill-action {
-  padding: var(--space-4) var(--space-6);
-
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-
-  background: var(--color-surface-hover);
-
-  color: var(--color-text-secondary);
-
-  font: inherit;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-medium);
-
-  text-decoration: none;
-
-  cursor: pointer;
-
-  transition:
-    background 150ms ease,
-    color 150ms ease,
-    transform 100ms ease-out;
-
-  &:hover {
-    background: var(--color-surface-active);
-    color: var(--color-text-primary);
-  }
-
-  &:active {
-    transform: scale(0.97);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--color-primary);
-    outline-offset: 2px;
-  }
+  @include m.action-button;
 }
 
 // ---------------------------------------------------------------------------
@@ -174,7 +86,7 @@
     padding: var(--space-7);
 
     border: 1px dashed var(--color-border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-card);
 
     background: var(--color-surface);
 
@@ -205,14 +117,7 @@
   }
 
   &__sr-only {
-    position: absolute;
-
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-
-    clip-path: inset(50%);
-    white-space: nowrap;
+    @include m.sr-only;
   }
 }
 
@@ -283,7 +188,10 @@
   row-gap: var(--space-4);
 
   &__ring {
-    @include score-ring(8.5rem, 0.65rem);
+    @extend %score-ring;
+
+    --ring-size: 8.5rem;
+    --ring-thickness: 0.65rem;
 
     grid-area: ring;
 
@@ -381,7 +289,10 @@
   }
 
   &__ring {
-    @include score-ring(4.5rem, 0.4rem);
+    @extend %score-ring;
+
+    --ring-size: 4.5rem;
+    --ring-thickness: 0.4rem;
 
     grid-area: ring;
 
@@ -485,11 +396,7 @@
 // ---------------------------------------------------------------------------
 
 .skeleton {
-  border-radius: var(--radius-lg);
-
-  background: var(--color-surface);
-
-  animation: skeleton-pulse 1.6s ease-in-out infinite;
+  @include m.skeleton-block;
 
   &--title {
     width: 14rem;
@@ -504,9 +411,5 @@
 
   &--card {
     min-height: 11rem;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
   }
 }

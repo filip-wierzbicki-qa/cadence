@@ -1,11 +1,25 @@
-import { Component, computed, input, output, signal } from '@angular/core';
-import { GoalEntryDayResponse } from '../../../models/goalModel';
-import { Icon } from '@shared/ui/icon/icon';
-import { LucidePencilLine, LucidePencil } from '@lucide/angular';
+import {
+  afterNextRender,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  Injector,
+  input,
+  output,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { Button } from '@shared/ui/button/button';
-import { InputComponent } from '@shared/ui/input/input';
 import { FormsModule } from '@angular/forms';
+import { LucidePencil, LucidePencilLine } from '@lucide/angular';
+
+import { GoalEntryDayResponse } from '@models/goalModel';
+import { Button } from '@shared/ui/button/button';
+import { Icon } from '@shared/ui/icon/icon';
+import { InputComponent } from '@shared/ui/input/input';
 
 @Component({
   selector: 'app-goal-entry',
@@ -14,21 +28,45 @@ import { FormsModule } from '@angular/forms';
   imports: [Icon, DecimalPipe, LucidePencilLine, LucidePencil, Button, InputComponent, FormsModule],
 })
 export class GoalEntry {
-  goal = input.required<GoalEntryDayResponse>();
-  isEditing = input(false);
+  private readonly injector = inject(Injector);
 
-  entryValue = signal<number | null>(null);
-  entryNote = signal('');
+  readonly goal = input.required<GoalEntryDayResponse>();
+  readonly isEditing = input(false);
+  /** The parent is persisting the entry; the editor stays open until it resolves. */
+  readonly isSaving = input(false);
+  /** Shown inside the editor when the parent failed to persist the entry. */
+  readonly saveError = input<string | null>(null);
 
-  entrySaved = output<{
+  readonly entryValue = signal<number | null>(null);
+  readonly entryNote = signal('');
+
+  readonly entrySaved = output<{
     goalId: string;
     value: number;
     note: string | null;
   }>();
-  editStarted = output<void>();
-  editCancelled = output<void>();
+  readonly editStarted = output<void>();
+  readonly editCancelled = output<void>();
 
-  progressPercent = computed(() => {
+  private readonly actionButton = viewChild<ElementRef<HTMLButtonElement>>('actionButton');
+
+  readonly isWeekly = computed(() => this.goal().period !== 'daily');
+
+  /** What the user has logged for this goal in its period, including today. */
+  readonly todayValue = computed(() => {
+    const goal = this.goal();
+
+    return goal.period === 'daily' ? (goal.entry_value ?? 0) : goal.period_value;
+  });
+
+  /** For non-daily goals: what was logged in the period before today. */
+  readonly valueBeforeToday = computed(() => {
+    const goal = this.goal();
+
+    return goal.period === 'daily' ? 0 : goal.period_value - (goal.entry_value ?? 0);
+  });
+
+  readonly progressPercent = computed(() => {
     const goal = this.goal();
 
     if (goal.target_value <= 0) {
@@ -42,27 +80,54 @@ export class GoalEntry {
     return goal.period_value / goal.target_value > 1 ? 0 : 100;
   });
 
+  readonly progressLabel = computed(() => {
+    const goal = this.goal();
+    const percent = Math.round(this.progressPercent());
+
+    if (goal.target_type === 'min') {
+      return `${percent}% of target`;
+    }
+
+    return percent === 100 ? 'Within limit' : 'Over limit';
+  });
+
+  /** Saving `0` is valid: it lets people correct an entry downwards. */
+  readonly canSave = computed(() => {
+    const value = this.entryValue();
+
+    return !this.isSaving() && value !== null && value >= this.valueBeforeToday();
+  });
+
+  constructor() {
+    // Return focus to the trigger once the editor closes, so keyboard users keep their place.
+    let wasEditing = false;
+
+    effect(() => {
+      const editing = this.isEditing();
+
+      if (wasEditing && !editing) {
+        untracked(() =>
+          afterNextRender(() => this.actionButton()?.nativeElement.focus(), {
+            injector: this.injector,
+          }),
+        );
+      }
+
+      wasEditing = editing;
+    });
+  }
+
   startEditing(): void {
-    this.entryValue.set(this.getTodayValue(this.goal()) ?? 0);
+    this.entryValue.set(this.todayValue());
     this.entryNote.set(this.goal().note ?? '');
     this.editStarted.emit();
   }
 
-  getTodayValue(goal: GoalEntryDayResponse): number | null {
-    return goal.period === 'daily' ? (goal.entry_value ?? 0) : goal.period_value;
-  }
-
-  getPreviousValue(goal: GoalEntryDayResponse): number | null {
-    if (goal.period === 'weekly') {
-      if (goal.entry_value === goal.period_value) {
-        return null;
-      }
-      return goal.period_value - (goal.entry_value ?? 0);
-    }
-    return goal.entry_value ?? 0;
-  }
-
   cancelEditing(): void {
+    if (this.isSaving()) {
+      return;
+    }
+
     this.editCancelled.emit();
   }
 
@@ -89,33 +154,18 @@ export class GoalEntry {
     }
   }
 
+  /** Emits the entry. The parent closes the editor once the save has succeeded. */
   save(): void {
     const enteredValue = this.entryValue();
 
-    if (enteredValue === null || Number.isNaN(enteredValue) || enteredValue < 0) {
+    if (!this.canSave() || enteredValue === null) {
       return;
-    }
-
-    let valueToSave = enteredValue;
-
-    if (this.goal().period !== 'daily') {
-      const currentDayValue = this.goal().entry_value ?? 0;
-
-      const periodValueBeforeToday = this.goal().period_value - currentDayValue;
-
-      valueToSave = enteredValue - periodValueBeforeToday;
-
-      if (valueToSave < 0) {
-        return;
-      }
     }
 
     this.entrySaved.emit({
       goalId: this.goal().goal_id,
-      value: valueToSave,
+      value: enteredValue - this.valueBeforeToday(),
       note: this.entryNote().trim() || null,
     });
-
-    this.cancelEditing();
   }
 }

@@ -11,4 +11,6 @@ export class Button {
   readonly disabled = input(false);
   readonly type = input<'button' | 'submit' | 'reset'>('button');
   readonly tabIndex = input<string | number>('');
+  /** Accessible name for buttons whose content is not text, e.g. an arrow glyph. */
+  readonly ariaLabel = input<string | null>(null);
 }

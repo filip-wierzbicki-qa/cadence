@@ -1,3 +1,9 @@
-<button [type]="type()" [disabled]="disabled()" [class]="variant()" [attr.tabindex]="tabIndex()">
+<button
+  [type]="type()"
+  [disabled]="disabled()"
+  [class]="variant()"
+  [attr.tabindex]="tabIndex()"
+  [attr.aria-label]="ariaLabel()"
+>
   <ng-content />
 </button>

@@ -6,7 +6,8 @@ import { LucideFlame, LucideTrophy } from '@lucide/angular';
 
 import { DashboardService } from '@core/api/dashboard.service';
 import { AuthService } from '@core/services/auth.service';
-import { scoreBand, streakColor } from './score-band';
+import { scoreBand } from '@shared/utils/score-band';
+import { streakColor } from './streak-color';
 
 @Component({
   selector: 'app-dashboard',

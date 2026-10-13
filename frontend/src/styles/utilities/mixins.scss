@@ -1,0 +1,137 @@
+// Shared building blocks. Component stylesheets pull these in with:
+//   @use '<relative path>/styles/utilities/mixins' as m;
+
+// Animatable so a ring can fill from 0 to its value.
+@property --score {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes score-ring-fill {
+  from {
+    --score: 0;
+  }
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+// A ring that fills to `--score` (0–100) in `--tone`. Its single child is the inner disc.
+// Size it with `--ring-size` and `--ring-thickness` so one extended rule can serve every size.
+// No overshoot: the value is earned, not thrown.
+@mixin score-ring($fill-on-mount: true) {
+  --score: 0;
+  --tone: var(--color-score-great);
+
+  display: grid;
+  flex: none;
+  place-items: center;
+
+  width: var(--ring-size, 5rem);
+  aspect-ratio: 1;
+
+  border-radius: 50%;
+
+  background: conic-gradient(
+    var(--tone) calc(var(--score) * 1%),
+    color-mix(in srgb, var(--tone) 25%, var(--color-surface)) 0
+  );
+
+  // Soft start and a long, gentle landing: the fill reads as charging, not snapping.
+  // Duration follows the value, so every ring fills at roughly the same visible speed.
+  --ring-ease: cubic-bezier(0.45, 0, 0.15, 1);
+
+  @if $fill-on-mount {
+    animation: score-ring-fill calc(600ms + var(--score) * 9ms) var(--ring-ease) 150ms both;
+  }
+
+  // Animates when the value changes after mount (e.g. after saving an entry).
+  transition: --score 800ms var(--ring-ease);
+
+  > :first-child {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    width: calc(100% - var(--ring-thickness, 0.5rem) * 2);
+    aspect-ratio: 1;
+
+    border-radius: 50%;
+
+    background: color-mix(in srgb, var(--tone) 10%, var(--color-surface));
+
+    color: var(--color-text-primary);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
+  }
+}
+
+@mixin skeleton-block {
+  border-radius: var(--radius-card);
+
+  background: var(--color-surface);
+
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+// Secondary action: press feedback on pointer-down, visible keyboard focus.
+@mixin action-button {
+  padding: var(--space-4) var(--space-6);
+
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+
+  background: var(--color-surface-hover);
+
+  color: var(--color-text-secondary);
+
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+
+  text-decoration: none;
+
+  cursor: pointer;
+
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    transform 100ms ease-out;
+
+  &:hover {
+    background: var(--color-surface-active);
+    color: var(--color-text-primary);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+@mixin sr-only {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

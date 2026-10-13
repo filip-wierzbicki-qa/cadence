@@ -1,60 +1,84 @@
 <section class="today">
   <header class="today__header">
-    <p class="today__date">
-      {{ (selectedDate() | date: 'EEEE, MMMM d')?.toLocaleUpperCase() }}
-    </p>
+    <div class="today__heading">
+      <p class="today__date">{{ selectedDate() | date: 'EEEE, MMMM d' }}</p>
+      <h1 class="today__title">Today</h1>
 
-    <h1 class="today__title">Today</h1>
-    <p class="today__score">
-      Day score {{ dailyScore()?.daily_score }}%
-      <span
-        class="today__score__dot"
-        [style.--background]="getScoreColor(dailyScore()?.daily_score || 100)"
-      ></span>
-    </p>
+      @if (score(); as score) {
+        <p class="today__summary">
+          {{ score.is_final ? 'Final score' : 'So far' }}
+          · {{ score.scored_components_count }} scored ·
+          {{ score.pending_components_count }} pending
+        </p>
+      } @else if (scoreResource.error()) {
+        <p class="today__summary">Score unavailable right now.</p>
+      }
+    </div>
+
+    @if (score()) {
+      <div
+        class="today__ring"
+        role="img"
+        [attr.aria-label]="
+          scoreValue() === null
+            ? 'Day score: no score yet'
+            : 'Day score: ' + (scoreValue() | number: '1.0-0') + '%, ' + band().label
+        "
+        [style.--score]="scoreValue() ?? 0"
+        [style.--tone]="band().color"
+      >
+        <div class="today__ring-inner" aria-hidden="true">
+          <span class="today__ring-value">
+            @if (scoreValue() !== null) {
+              {{ scoreValue() | number: '1.0-0' }}%
+            } @else {
+              –
+            }
+          </span>
+        </div>
+      </div>
+    }
   </header>
 
-  @if (dailyGoals().length) {
-    <section class="today__section">
-      <h2 class="today__section__title">DAILY</h2>
-
-      <div class="today__grid">
-        @for (goal of dailyGoals(); track goal.goal_id) {
-          <app-goal-entry
-            [goal]="goal"
-            (entrySaved)="saveEntry($event)"
-            [isEditing]="editingGoalId() === goal.goal_id"
-            (editStarted)="editingGoalId.set(goal.goal_id)"
-            (editCancelled)="editingGoalId.set(null)"
-          />
-        }
-      </div>
-    </section>
-  }
-
-  @if (weeklyGoals().length) {
-    <section class="today__section">
-      <h2 class="today__section__title">WEEKLY</h2>
-
-      <div class="today__grid">
-        @for (goal of weeklyGoals(); track goal.goal_id) {
-          <app-goal-entry
-            [goal]="goal"
-            (entrySaved)="saveEntry($event)"
-            [isEditing]="editingGoalId() === goal.goal_id"
-            (editStarted)="editingGoalId.set(goal.goal_id)"
-            (editCancelled)="editingGoalId.set(null)"
-          />
-        }
-      </div>
-    </section>
-  }
-
-  @if (!dailyGoals().length && !weeklyGoals().length) {
+  @if (goalsResource.error()) {
+    <div class="today__empty" role="alert">
+      <h2 class="today__empty-title">Couldn't load your goals</h2>
+      <p class="today__empty-text">Check your connection and try again.</p>
+      <button class="today__retry" type="button" (click)="goalsResource.reload()">Try again</button>
+    </div>
+  } @else if (!goalsResource.hasValue()) {
+    <div class="today__grid" aria-busy="true">
+      <span class="today__sr-only" role="status">Loading your goals…</span>
+      @for (placeholder of [1, 2, 3]; track placeholder) {
+        <div class="today__skeleton" aria-hidden="true"></div>
+      }
+    </div>
+  } @else if (isEmpty()) {
     <div class="today__empty">
       <h2 class="today__empty-title">No active goals</h2>
-
       <p class="today__empty-text">Add a goal to start tracking your day.</p>
     </div>
+  } @else {
+    @for (section of sections(); track section.title) {
+      @if (section.goals.length) {
+        <section class="today__section" [attr.aria-label]="section.title + ' goals'">
+          <h2 class="today__section-title">{{ section.title }}</h2>
+
+          <div class="today__grid">
+            @for (goal of section.goals; track goal.goal_id) {
+              <app-goal-entry
+                [goal]="goal"
+                [isEditing]="editingGoalId() === goal.goal_id"
+                [isSaving]="savingGoalId() === goal.goal_id"
+                [saveError]="editingGoalId() === goal.goal_id ? saveError() : null"
+                (entrySaved)="saveEntry($event)"
+                (editStarted)="startEditing(goal.goal_id)"
+                (editCancelled)="cancelEditing()"
+              />
+            }
+          </div>
+        </section>
+      }
+    }
   }
 </section>

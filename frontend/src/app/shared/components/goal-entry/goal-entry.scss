@@ -1,13 +1,29 @@
+@use '../../../../styles/utilities/mixins' as m;
+
+@keyframes goal-entry-editor-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
 .goal-entry {
   --goal-color: #8b8b8b;
+
+  // The body is tile-sized when reading and grows to fit the editor while editing.
+  // Tune these two values; the growth is animated so it reads as one continuous motion.
+  --goal-entry-body-min-height: 8rem;
+  --goal-entry-editor-min-height: 14rem;
+
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  height: 100%;
-  padding: 1.5rem;
-  border: 1px solid color-mix(in srgb, var(--goal-color) 28%, var(--color-border));
+  gap: var(--space-4);
 
-  border-radius: 2rem;
+  height: 100%;
+  padding: var(--space-6);
+
+  border: 1px solid color-mix(in srgb, var(--goal-color) 28%, var(--color-border));
+  border-radius: var(--radius-card);
 
   background: color-mix(in srgb, var(--goal-color) 10%, var(--color-surface));
 
@@ -15,13 +31,13 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    gap: var(--space-4);
   }
 
   &__identity {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: var(--space-4);
 
     min-width: 0;
   }
@@ -30,17 +46,21 @@
     display: grid;
     place-items: center;
 
-    flex: 0 0 4rem;
+    flex: none;
 
     width: 4rem;
-    height: 4rem;
+    aspect-ratio: 1;
 
-    border-radius: 1.25rem;
+    border-radius: var(--radius-control);
 
     background: color-mix(in srgb, var(--goal-color) 16%, var(--color-surface-hover));
   }
 
   &__info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+
     min-width: 0;
   }
 
@@ -53,106 +73,126 @@
 
     color: var(--color-text-primary);
 
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: -0.01em;
     line-height: 1.15;
   }
 
+  &__kind,
   &__target {
-    margin: 0.35rem 0 0;
-
     color: var(--color-text-secondary);
 
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     line-height: 1.3;
   }
 
-  &__progress-ring {
-    --progress: 0;
+  &__ring {
+    @include m.score-ring($fill-on-mount: false);
 
-    display: grid;
-    place-items: center;
+    --ring-size: 4.5rem;
+    --ring-thickness: 0.325rem;
+    --tone: var(--goal-color);
 
-    width: 4.5rem;
-    height: 4.5rem;
-
-    border-radius: 50%;
-
-    background: conic-gradient(
-      var(--goal-color) calc(var(--progress) * 1%),
-      color-mix(in srgb, var(--goal-color) 25%, var(--color-surface)) 0
-    );
+    > :first-child {
+      font-size: var(--font-size-md);
+      font-variant-numeric: tabular-nums;
+      font-weight: var(--font-weight-semibold);
+    }
   }
 
-  &__progress-ring-inner {
-    display: grid;
-    place-items: center;
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
 
-    width: 3.65rem;
-    height: 3.65rem;
+    min-height: var(--goal-entry-body-min-height);
 
-    border-radius: 50%;
+    transition: min-height 220ms cubic-bezier(0.2, 0.9, 0.3, 1);
 
-    background: color-mix(in srgb, var(--goal-color) 10%, var(--color-surface));
+    &--editing {
+      min-height: var(--goal-entry-editor-min-height);
+    }
 
-    color: var(--color-text-primary);
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
 
-    font-size: 1rem;
-    font-weight: 600;
+  &__summary {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--space-1);
   }
 
   &__value {
     display: flex;
     align-items: baseline;
+    gap: var(--space-2);
 
     app-input {
       width: 6rem;
     }
   }
 
-  &__value__column {
-    &__row {
-      display: flex;
-      align-items: baseline;
+  &__current {
+    color: var(--color-text-primary);
 
-      &__current-value {
-        color: var(--color-text-primary);
+    font-size: 3rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
 
-        font-size: 3rem;
-        font-weight: var(--font-weight-bold);
-        line-height: 1;
-      }
-    }
+  &__hint {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+
+    font-size: var(--font-size-sm);
   }
 
   &__action {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
 
-    padding: 0.9rem 1.25rem;
+    padding: var(--space-4) var(--space-5);
 
     border: 1px solid color-mix(in srgb, var(--goal-color) 18%, var(--color-border));
-
-    border-radius: 1.25rem;
+    border-radius: var(--radius-control);
 
     background: color-mix(in srgb, var(--goal-color) 5%, var(--color-surface-hover));
 
     color: var(--color-text-primary);
 
-    font-weight: 500;
+    font: inherit;
+    font-weight: var(--font-weight-medium);
 
     cursor: pointer;
 
     transition:
       border-color 150ms ease,
-      background 150ms ease;
+      background 150ms ease,
+      transform 100ms ease-out;
 
     &:hover {
       border-color: color-mix(in srgb, var(--goal-color) 32%, var(--color-border));
 
       background: color-mix(in srgb, var(--goal-color) 10%, var(--color-surface-hover));
+    }
+
+    // Feedback lands on press, not on release.
+    &:active {
+      transform: scale(0.98);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--goal-color);
+      outline-offset: 2px;
     }
 
     > svg {
@@ -162,115 +202,79 @@
 
   &__editor {
     display: flex;
+    flex: 1;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-4);
+    justify-content: space-between;
+
+    animation: goal-entry-editor-in 160ms ease-out;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
 
   &__field {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--space-2);
 
     label {
       color: var(--color-text-secondary);
-      font-size: 0.8125rem;
-      font-weight: 500;
+
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-medium);
+    }
+
+    textarea {
+      padding: var(--space-3) var(--space-4);
+
+      resize: vertical;
+
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-control);
+      outline: 0;
+
+      background: color-mix(in srgb, var(--goal-color) 10%, var(--color-surface-hover));
+
+      color: var(--color-text-primary);
+
+      font: inherit;
+
+      &:focus {
+        border-color: var(--goal-color);
+      }
     }
   }
 
-  &__input-wrapper {
-    display: flex;
-    align-items: center;
+  &__error {
+    margin: 0;
 
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+    color: var(--color-score-needs-work);
 
-    width: fit-content;
-    max-width: 100%;
-    font-size: 3rem;
-
-    &:focus-within {
-      border-color: var(--goal-color);
-    }
-
-    span {
-      padding-right: 0.875rem;
-
-      color: var(--color-text-secondary);
-
-      font-size: 0.875rem;
-    }
-  }
-
-  &__field textarea {
-    padding: 0.75rem 0.875rem;
-
-    resize: vertical;
-
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    outline: 0;
-
-    background: color-mix(in srgb, var(--goal-color) 10%, var(--color-surface-hover));
-
-    color: var(--color-text-primary);
-
-    font: inherit;
-
-    &:focus {
-      border-color: var(--goal-color);
-    }
+    font-size: var(--font-size-sm);
   }
 
   &__editor-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 0.75rem;
+    gap: var(--space-3);
 
     app-button {
       --button-background: color-mix(in srgb, var(--goal-color) 10%, var(--color-surface-hover));
     }
   }
 
-  &__cancel,
-  &__save {
-    padding: 0.65rem 1rem;
-
-    border-radius: var(--radius-md);
-
-    font: inherit;
-    font-size: 0.875rem;
-    font-weight: 600;
-
-    cursor: pointer;
-  }
-
-  &__cancel {
-    border: 1px solid var(--color-border);
-
-    background: transparent;
-
-    color: var(--color-text-secondary);
-  }
-
-  &__save {
-    border: 1px solid var(--goal-color);
-
-    background: color-mix(in srgb, var(--goal-color) 14%, transparent);
-
-    color: var(--goal-color);
-  }
-
   &__note {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: var(--space-2);
 
-    margin: -0.25rem 0 0;
+    margin: calc(var(--space-1) * -1) 0 0;
 
     color: var(--color-text-secondary);
 
-    font-size: 0.875rem;
+    font-size: var(--font-size-sm);
     font-style: italic;
 
     > svg {

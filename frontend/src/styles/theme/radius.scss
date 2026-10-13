@@ -3,4 +3,8 @@
   --radius-md: 13px;
   --radius-lg: 18px;
   --radius-xl: 24px;
+
+  // Semantic roles: cards and panels share one radius, controls inside them another.
+  --radius-card: var(--radius-lg);
+  --radius-control: var(--radius-md);
 }

@@ -1,52 +1,85 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { GoalEntryDayResponse } from '../../models/goalModel';
-import { GoalsService } from '../../core/api/goals.service';
+import { Component, computed, inject, signal } from '@angular/core';
+import { rxResource } from '@angular/core/rxjs-interop';
+import { DatePipe, DecimalPipe } from '@angular/common';
+
+import { GoalsService } from '@core/api/goals.service';
 import { GoalEntry } from '@shared/components/goal-entry/goal-entry';
-import { DatePipe } from '@angular/common';
-import { DailyProgressResponse } from '@models/progressModel';
+import { scoreBand } from '@shared/utils/score-band';
 
 @Component({
   selector: 'app-today',
-  imports: [GoalEntry, DatePipe],
+  imports: [GoalEntry, DatePipe, DecimalPipe],
   templateUrl: './today.html',
   styleUrl: './today.scss',
 })
-export class Today implements OnInit {
-  private goalsService = inject(GoalsService);
-  selectedDate = signal('');
-  goals = signal<GoalEntryDayResponse[]>([]);
-  editingGoalId = signal<string | null>(null);
-  dailyScore = signal<DailyProgressResponse | null>(null);
+export class Today {
+  private readonly goalsService = inject(GoalsService);
 
-  dailyGoals = computed(() => this.goals().filter((goal) => goal.period === 'daily'));
-  weeklyGoals = computed(() => this.goals().filter((goal) => goal.period === 'weekly'));
+  readonly selectedDate = signal(this.getTodayDate());
+  readonly editingGoalId = signal<string | null>(null);
+  readonly savingGoalId = signal<string | null>(null);
+  readonly saveError = signal<string | null>(null);
 
-  ngOnInit(): void {
-    this.selectedDate.set(this.getTodayDate());
-    this.loadGoals();
-    this.getDailyScore();
+  readonly goalsResource = rxResource({
+    params: () => this.selectedDate(),
+    stream: ({ params: date }) => this.goalsService.getEntriesForDate(date),
+  });
+
+  readonly scoreResource = rxResource({
+    params: () => this.selectedDate(),
+    stream: ({ params: date }) => this.goalsService.getDayScore(date),
+  });
+
+  readonly goals = computed(() =>
+    this.goalsResource.hasValue() ? this.goalsResource.value() : [],
+  );
+  readonly score = computed(() =>
+    this.scoreResource.hasValue() ? this.scoreResource.value() : null,
+  );
+
+  readonly sections = computed(() => [
+    { title: 'Daily', goals: this.goals().filter((goal) => goal.period === 'daily') },
+    { title: 'Weekly', goals: this.goals().filter((goal) => goal.period === 'weekly') },
+  ]);
+
+  /** Only true once the goals request succeeded and returned nothing. */
+  readonly isEmpty = computed(() => this.goalsResource.hasValue() && this.goals().length === 0);
+
+  readonly scoreValue = computed(() => this.score()?.daily_score ?? null);
+  readonly band = computed(() => scoreBand(this.scoreValue()));
+
+  startEditing(goalId: string): void {
+    this.saveError.set(null);
+    this.editingGoalId.set(goalId);
   }
 
-  public getDailyScore(): void {
-    this.goalsService.getDayScore(this.selectedDate()).subscribe({
-      next: (score) => {
-        this.dailyScore.set(score);
-      },
-      error: (error) => {
-        console.error('Failed to load goal entries', error);
-      },
-    });
+  cancelEditing(): void {
+    this.saveError.set(null);
+    this.editingGoalId.set(null);
   }
 
-  private loadGoals(): void {
-    this.goalsService.getEntriesForDate(this.selectedDate()).subscribe({
-      next: (goals) => {
-        this.goals.set(goals);
-      },
-      error: (error) => {
-        console.error('Failed to load goal entries', error);
-      },
-    });
+  saveEntry(event: { goalId: string; value: number; note: string | null }): void {
+    this.savingGoalId.set(event.goalId);
+    this.saveError.set(null);
+
+    this.goalsService
+      .upsertEntry(event.goalId, this.selectedDate(), {
+        value: event.value,
+        note: event.note,
+      })
+      .subscribe({
+        next: () => {
+          this.savingGoalId.set(null);
+          this.editingGoalId.set(null);
+          this.goalsResource.reload();
+          this.scoreResource.reload();
+        },
+        error: (error) => {
+          console.error('Failed to save entry', error);
+          this.savingGoalId.set(null);
+          this.saveError.set("Couldn't save your entry. Try again.");
+        },
+      });
   }
 
   private getTodayDate(): string {
@@ -57,43 +90,5 @@ export class Today implements OnInit {
     const day = String(today.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
-  }
-
-  getScoreColor(progress: number | null): string {
-    if (progress === null) {
-      return 'var(--color-score-great)';
-    }
-
-    if (progress >= 85) {
-      return 'var(--color-score-great)';
-    }
-
-    if (progress >= 70) {
-      return 'var(--color-score-good)';
-    }
-
-    if (progress >= 50) {
-      return 'var(--color-score-could-do-more)';
-    }
-
-    return 'var(--color-score-needs-work)';
-  }
-
-  saveEntry(event: { goalId: string; value: number; note: string | null }): void {
-    this.goalsService
-      .upsertEntry(event.goalId, this.selectedDate(), {
-        value: event.value,
-        note: event.note,
-      })
-      .subscribe({
-        next: () => {
-          this.editingGoalId.set(null);
-          this.loadGoals();
-          this.getDailyScore();
-        },
-        error: (error) => {
-          console.error('Failed to save entry', error);
-        },
-      });
   }
 }

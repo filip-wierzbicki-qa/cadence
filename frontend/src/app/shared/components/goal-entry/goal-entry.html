@@ -6,100 +6,117 @@
       </div>
 
       <div class="goal-entry__info">
-        <h3 class="goal-entry__name">
-          {{ goal().name }}
-        </h3>
-        <span class="goal-entry__target">
+        <h3 class="goal-entry__name">{{ goal().name }}</h3>
+        <span class="goal-entry__kind">
           {{ goal().target_type === 'min' ? 'At least' : 'At most' }}
         </span>
       </div>
     </div>
 
-    <div class="goal-entry__progress-ring" [style.--progress]="progressPercent()">
-      <div class="goal-entry__progress-ring-inner">{{ progressPercent() | number: '1.0-0' }}%</div>
+    <div
+      class="goal-entry__ring"
+      role="img"
+      [attr.aria-label]="progressLabel()"
+      [style.--score]="progressPercent()"
+    >
+      <div class="goal-entry__ring-inner" aria-hidden="true">
+        {{ progressPercent() | number: '1.0-0' }}%
+      </div>
     </div>
   </div>
 
-  @if (!isEditing()) {
-    <div class="goal-entry__value">
-      <div class="goal-entry__value__column">
-        <div class="goal-entry__value__column__row">
-          <div class="goal-entry__value__column__row__current-value">
-            {{ getTodayValue(goal()) | number: '1.0-2' }}
-          </div>
-          <p class="goal-entry__target">
-            &nbsp; / {{ goal().target_value | number: '1.0-2' }} {{ goal().unit }}
-          </p>
+  <div class="goal-entry__body" [class.goal-entry__body--editing]="isEditing()">
+    @if (!isEditing()) {
+      <div class="goal-entry__summary">
+        <div class="goal-entry__value">
+          <span class="goal-entry__current">{{ todayValue() | number: '1.0-2' }}</span>
+          <span class="goal-entry__target">
+            / {{ goal().target_value | number: '1.0-2' }} {{ goal().unit }}
+          </span>
         </div>
-        @if (goal().period === 'weekly' && getTodayValue(goal())! > 0) {
-          <p class="goal-entry__target">
-            Before: {{ getPreviousValue(goal()) ?? 0 | number: '1.0-2' }}
-            {{ goal().unit }}
+
+        @if (isWeekly() && todayValue() > 0) {
+          <p class="goal-entry__hint">
+            Before today: {{ valueBeforeToday() | number: '1.0-2' }} {{ goal().unit }}
           </p>
         }
       </div>
-    </div>
 
-    <button class="goal-entry__action" type="button" (click)="startEditing()">
-      <svg lucidePencil></svg>
+      <button
+        #actionButton
+        class="goal-entry__action"
+        type="button"
+        [attr.aria-label]="'Enter value for ' + goal().name"
+        (click)="startEditing()"
+      >
+        <svg lucidePencil aria-hidden="true"></svg>
 
-      <span>Enter value</span>
-    </button>
-  } @else {
-    <div class="goal-entry__editor" (keydown)="onEditorKeydown($event)">
-      <div class="goal-entry__value">
-        <app-input
-          type="text"
-          inputMode="decimal"
-          [autoFocus]="true"
-          [autoSelect]="true"
-          [variant]="'entry'"
-          [ngModel]="entryValue()"
-          (ngModelChange)="onEntryValueChange($event)"
-          [style.--value-length]="entryValue()?.toString()?.length ?? 1"
-        />
-        <p class="goal-entry__target">
-          &nbsp; / {{ goal().target_value | number: '1.0-2' }} {{ goal().unit }}
-        </p>
+        <span>Enter value</span>
+      </button>
+    } @else {
+      <div class="goal-entry__editor" (keydown)="onEditorKeydown($event)">
+        <div class="goal-entry__value">
+          <app-input
+            type="text"
+            inputMode="decimal"
+            [autoFocus]="true"
+            [autoSelect]="true"
+            [variant]="'entry'"
+            [ngModel]="entryValue()"
+            (ngModelChange)="onEntryValueChange($event)"
+            [style.--value-length]="entryValue()?.toString()?.length ?? 1"
+          />
+          <span class="goal-entry__target">
+            / {{ goal().target_value | number: '1.0-2' }} {{ goal().unit }}
+          </span>
+        </div>
+
+        @if (isWeekly()) {
+          <p class="goal-entry__hint">
+            Week total · {{ valueBeforeToday() | number: '1.0-2' }} {{ goal().unit }} before today
+          </p>
+        }
+
+        <div class="goal-entry__field">
+          <label [for]="'entry-note-' + goal().goal_id">Note</label>
+
+          <textarea
+            [id]="'entry-note-' + goal().goal_id"
+            maxlength="200"
+            [rows]="1"
+            placeholder="Optional note..."
+            [value]="entryNote()"
+            (input)="entryNote.set($any($event.target).value)"
+          ></textarea>
+        </div>
+
+        @if (saveError(); as message) {
+          <p class="goal-entry__error" role="alert">{{ message }}</p>
+        }
+
+        <div class="goal-entry__editor-actions">
+          <app-button
+            type="button"
+            variant="secondary"
+            [disabled]="isSaving()"
+            (click)="cancelEditing()"
+          >
+            Cancel
+          </app-button>
+
+          <app-button type="submit" variant="primary" [disabled]="!canSave()" (click)="save()">
+            {{ isSaving() ? 'Saving…' : 'Save' }}
+          </app-button>
+        </div>
       </div>
-      <div class="goal-entry__field">
-        <label for="entry-note"> Note </label>
+    }
 
-        <textarea
-          id="entry-note"
-          maxlength="200"
-          [rows]="1"
-          placeholder="Optional note..."
-          [value]="entryNote()"
-          (input)="entryNote.set($any($event.target).value)"
-        ></textarea>
-      </div>
+    @if (!isEditing() && goal().note) {
+      <p class="goal-entry__note">
+        <svg lucidePencilLine aria-hidden="true"></svg>
 
-      <div class="goal-entry__editor-actions">
-        <app-button type="button" variant="secondary" (click)="cancelEditing()">
-          Cancel
-        </app-button>
-
-        <app-button
-          type="submit"
-          variant="primary"
-          (click)="save()"
-          [disabled]="
-            entryValue() === null ||
-            entryValue()! <= goal().period_value - (this.goal().entry_value ?? 0)
-          "
-        >
-          Save
-        </app-button>
-      </div>
-    </div>
-  }
-
-  @if (!isEditing() && goal().note) {
-    <p class="goal-entry__note">
-      <svg lucidePencilLine></svg>
-
-      <span>{{ goal().note }}</span>
-    </p>
-  }
+        <span>{{ goal().note }}</span>
+      </p>
+    }
+  </div>
 </article>
