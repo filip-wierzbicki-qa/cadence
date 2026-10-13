@@ -1,232 +1,436 @@
 @use '../../../styles/theme/breakpoints' as bp;
 
+$sidebar-width: 280px;
+$mobile-bar-height: 72px;
+
+// Floating chrome is translucent so content scrolls underneath it, and falls back to a
+// solid surface when the user asks for less transparency.
+@mixin material {
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  backdrop-filter: blur(20px) saturate(180%);
+
+  @media (prefers-reduced-transparency: reduce) {
+    background: var(--color-surface);
+    backdrop-filter: none;
+  }
+}
+
+@keyframes user-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+@keyframes user-menu-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
 .app-layout {
   display: flex;
   min-height: 100vh;
+  min-height: 100dvh;
+
   background: var(--color-background);
   color: var(--color-text-primary);
 }
+
+// ---------------------------------------------------------------------------
+// Sidebar (desktop) / top bar + tab bar (small screens)
+// ---------------------------------------------------------------------------
 
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
+
   display: flex;
   flex-direction: column;
-  width: 280px;
+
+  width: $sidebar-width;
   height: 100vh;
+  height: 100dvh;
   padding: var(--space-8) var(--space-4) var(--space-5);
-  background: var(--color-background);
+
   border-right: 1px solid var(--color-border);
+
   background: var(--color-surface);
+
+  &__logo {
+    display: flex;
+    align-items: center;
+
+    margin-bottom: var(--space-8);
+    padding: 0 var(--space-4);
+  }
+
+  // The logo is the way home.
+  &__home {
+    display: inline-flex;
+
+    border-radius: var(--radius-control);
+
+    color: inherit;
+    text-decoration: none;
+
+    transition: transform 100ms ease-out;
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 4px;
+    }
+  }
+
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    height: 52px;
+    padding: 0 var(--space-4);
+
+    border-radius: var(--radius-control);
+
+    color: var(--color-text-secondary);
+
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
+    text-decoration: none;
+
+    transition:
+      background 150ms ease,
+      color 150ms ease,
+      transform 100ms ease-out;
+
+    svg {
+      flex: none;
+
+      width: 20px;
+      height: 20px;
+    }
+
+    &:hover {
+      background: var(--color-surface-hover);
+      color: var(--color-text-primary);
+    }
+
+    // Feedback lands on press, not on release.
+    &:active {
+      transform: scale(0.97);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    &.active {
+      background: var(--color-surface-active);
+      color: var(--color-text-primary);
+    }
+  }
+
+  &__bottom {
+    margin-top: auto;
+  }
 }
 
-.sidebar__logo {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 0 var(--space-4);
-  margin-bottom: var(--space-8);
-}
+// ---------------------------------------------------------------------------
+// Account card and its menu
+// ---------------------------------------------------------------------------
 
-.logo-text {
-  font-size: var(--font-size-2xl);
-  font-weight: 700;
-}
+.user-menu {
+  position: relative;
 
-.sidebar__nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
+  &__popover {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + var(--space-2));
+    z-index: 10;
 
-.sidebar__link {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  height: 52px;
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-md);
-  color: var(--color-text-secondary);
-  text-decoration: none;
-  font-size: var(--font-size-md);
-  font-weight: 500;
-  transition:
-    background var(--transition-normal),
-    color var(--transition-normal);
-}
+    width: 100%;
+    padding: var(--space-1);
 
-.sidebar__link svg {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-}
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
 
-.sidebar__link:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-}
+    background: var(--color-surface);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
 
-.sidebar__link.active {
-  background: var(--color-surface-active);
-  color: var(--color-text-primary);
-}
+    // Anchored to the card it came from: it rises out of it and sinks back the same way.
+    transform-origin: bottom center;
 
-.sidebar__bottom {
-  margin-top: auto;
+    &--in {
+      animation: user-menu-in 200ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+
+    &--out {
+      animation: user-menu-out 140ms ease-in forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &--in,
+      &--out {
+        animation-duration: 1ms;
+      }
+    }
+  }
+
+  &__logout {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    width: 100%;
+    padding: var(--space-3);
+
+    border: 0;
+    border-radius: var(--radius-sm);
+
+    background: transparent;
+    color: var(--color-danger);
+
+    font: inherit;
+    text-align: left;
+
+    cursor: pointer;
+
+    transition:
+      background 150ms ease,
+      transform 100ms ease-out;
+
+    svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: var(--color-surface-hover);
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: -2px;
+    }
+  }
 }
 
 .user-card {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+
   width: 100%;
   padding: var(--space-4);
+
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
+
   background: var(--color-surface-hover);
   color: var(--color-text-primary);
+
   font: inherit;
   text-align: left;
+
   cursor: pointer;
 
   transition:
-    background var(--transition-fast),
-    border-color var(--transition-fast);
-}
+    background 150ms ease,
+    transform 100ms ease-out;
 
-.user-card:hover {
-  background: var(--color-surface-active);
-}
+  &:hover {
+    background: var(--color-surface-active);
+  }
 
-.user-card__details {
-  min-width: 0;
-  flex: 1;
-}
+  &:active {
+    transform: scale(0.98);
+  }
 
-.user-card__chevron {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-  color: var(--color-text-secondary);
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  &__details {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__chevron {
+    flex: none;
+
+    width: 18px;
+    height: 18px;
+
+    color: var(--color-text-secondary);
+
+    // One glyph that turns over, not two glyphs that swap.
+    transition: transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1);
+
+    &--open {
+      transform: rotate(180deg);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
 }
 
 .user-avatar {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+
   width: 42px;
-  height: 42px;
+  aspect-ratio: 1;
+
   border-radius: 50%;
+
   background: var(--color-primary);
   color: var(--color-button-text);
-  font-weight: 700;
+
+  font-weight: var(--font-weight-bold);
+}
+
+.user-name,
+.user-email {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .user-name {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .user-email {
   margin-top: 2px;
+
   color: var(--color-text-secondary);
+
   font-size: var(--font-size-xs);
 }
 
+// ---------------------------------------------------------------------------
+// Content
+// ---------------------------------------------------------------------------
+
 .content {
   flex: 1;
+
   min-height: 100vh;
-  margin-left: 280px;
+  min-height: 100dvh;
+  margin-left: $sidebar-width;
+
   background: var(--color-background);
 }
 
 .page-container {
   max-width: 1400px;
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0 auto;
   padding: var(--space-8);
 }
 
-.user-menu {
-  position: relative;
-}
-
-.user-menu__popover {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + var(--space-2));
-  width: 100%;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: #e8a9bc;
-  z-index: 10;
-}
-
-.user-menu__logout {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  padding: var(--space-3);
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: #e8a9bc;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-
-  transition: background var(--transition-fast);
-}
-
-.user-menu__logout:hover {
-  background: var(--color-surface-hover);
-}
-
-.user-menu__logout svg {
-  width: 18px;
-  height: 18px;
-}
+// ---------------------------------------------------------------------------
+// Small screens: top bar with the account, floating tab bar with every destination
+// ---------------------------------------------------------------------------
 
 @media (max-width: bp.$desktop) {
   .sidebar {
     width: auto;
     height: auto;
     padding: 0;
+
     border-right: 0;
+
     background: transparent;
-  }
 
-  .sidebar__logo {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 72px;
-    margin: 0;
-    padding: 0 var(--space-4);
-    background: var(--color-surface);
-    border-bottom: 1px solid var(--color-border);
-    z-index: 20;
-  }
+    &__logo {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 20;
 
-  .sidebar__nav {
-    position: fixed;
-    right: var(--space-2);
-    bottom: var(--space-2);
-    left: var(--space-2);
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-content: center;
-    justify-content: space-around;
-    padding: var(--space-2) var(--space-3);
-    background: var(--color-background);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-xl);
-    z-index: 20;
-    background: var(--color-surface);
+      height: $mobile-bar-height;
+      margin: 0;
+      padding: 0 var(--space-4);
+
+      border-bottom: 1px solid var(--color-border);
+
+      @include material;
+    }
+
+    // Five destinations in one row, like a tab bar: icon above a short label.
+    &__nav {
+      position: fixed;
+      right: var(--space-2);
+      bottom: max(var(--space-2), env(safe-area-inset-bottom));
+      left: var(--space-2);
+      z-index: 20;
+
+      flex-direction: row;
+      justify-content: space-around;
+      gap: var(--space-1);
+
+      padding: var(--space-2);
+
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-card);
+
+      @include material;
+    }
+
+    &__link {
+      flex: 1;
+      flex-direction: column;
+      justify-content: center;
+      gap: var(--space-1);
+
+      min-width: 0;
+      height: auto;
+      padding: var(--space-2) var(--space-1);
+
+      font-size: var(--font-size-xs);
+
+      span {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      &.active {
+        background: var(--color-surface-active);
+      }
+    }
+
+    &__bottom {
+      position: fixed;
+      top: var(--space-3);
+      right: var(--space-3);
+      z-index: 30;
+
+      margin-top: 0;
+    }
   }
 
   .content {
@@ -234,52 +438,47 @@
   }
 
   .page-container {
-    padding: calc(72px + var(--space-6)) var(--space-4) calc(80px + var(--space-6));
+    padding: calc(#{$mobile-bar-height} + var(--space-6)) var(--space-4)
+      calc(80px + var(--space-6) + env(safe-area-inset-bottom));
   }
 
-  .sidebar__link {
-    flex-direction: column;
-    padding: var(--space-2);
-    gap: var(--space-1);
-    font-size: var(--font-size-xs);
-  }
-
-  .sidebar__settings {
-    display: none;
-  }
-
-  .sidebar__bottom {
-    position: fixed;
-    top: var(--space-3);
-    right: var(--space-3);
-    margin-top: 0;
-    z-index: 30;
-  }
-
-  .sidebar__link.active {
-    background: var(--color-background);
-  }
-
-  .user-card__details {
-    display: none;
-  }
-
-  .user-card__chevron {
-    display: none;
-  }
-
+  // Only the avatar is shown, but the name stays available to assistive technology.
   .user-card {
+    width: auto;
     padding: 0;
 
-    &::hover {
+    border: 0;
+
+    background: transparent;
+
+    &:hover {
       background: transparent;
+    }
+
+    &__details {
+      position: absolute;
+
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    &__chevron {
+      display: none;
     }
   }
 
   .user-menu__popover {
     top: calc(100% + var(--space-2));
-    bottom: unset;
-    right: 0px;
-    width: 100px;
+    right: 0;
+    bottom: auto;
+
+    width: auto;
+    min-width: 9rem;
+
+    transform-origin: top right;
   }
 }

@@ -1,67 +1,46 @@
 <div class="settings">
   <h1 class="settings__title">Settings</h1>
 
-  <section class="settings-section">
-    <h2 class="settings-section__title">Profile</h2>
+  <section class="settings-section" aria-labelledby="settings-profile">
+    <h2 class="settings-section__title" id="settings-profile">Profile</h2>
 
-    <div class="profile">
-      <div class="profile__avatar">
-        {{ currentUser()?.profileInitial }}
+    @if (currentUser(); as user) {
+      <div class="profile">
+        <div class="profile__avatar" aria-hidden="true">{{ user.profileInitial }}</div>
+
+        <div class="profile__details">
+          <span class="profile__name">{{ user.display_name || 'User' }}</span>
+          <span class="profile__email">{{ user.email }}</span>
+        </div>
       </div>
+    } @else {
+      <div class="profile" aria-busy="true">
+        <div class="settings__skeleton settings__skeleton--avatar"></div>
 
-      <div class="profile__details">
-        <span class="profile__name">
-          {{ currentUser()?.display_name || 'User' }}
-        </span>
-
-        <span class="profile__email">
-          {{ currentUser()?.email || 'No email' }}
-        </span>
+        <div class="profile__details">
+          <div class="settings__skeleton settings__skeleton--name"></div>
+          <div class="settings__skeleton settings__skeleton--email"></div>
+        </div>
       </div>
-    </div>
+    }
   </section>
 
-  <section class="settings-section">
-    <h2 class="settings-section__title">Score thresholds</h2>
+  <section class="settings-section" aria-labelledby="settings-thresholds">
+    <h2 class="settings-section__title" id="settings-thresholds">Score thresholds</h2>
 
-    <div class="thresholds">
-      <div class="threshold">
-        <div class="threshold__label threshold__label--great">
-          <span class="threshold__dot"></span>
-          Great
+    <dl class="thresholds">
+      @for (band of thresholds; track band.label) {
+        <div class="threshold" [style.--tone]="band.color">
+          <dt class="threshold__label">
+            <span class="threshold__dot" aria-hidden="true"></span>
+            {{ band.label }}
+          </dt>
+
+          <dd class="threshold__value">{{ band.from }}–{{ band.to }}%</dd>
         </div>
+      }
+    </dl>
 
-        <span class="threshold__value">91–100%</span>
-      </div>
-
-      <div class="threshold">
-        <div class="threshold__label threshold__label--good">
-          <span class="threshold__dot"></span>
-          Good
-        </div>
-
-        <span class="threshold__value">76–90%</span>
-      </div>
-
-      <div class="threshold">
-        <div class="threshold__label threshold__label--could-do-more">
-          <span class="threshold__dot"></span>
-          Could do more
-        </div>
-
-        <span class="threshold__value">61–75%</span>
-      </div>
-
-      <div class="threshold">
-        <div class="threshold__label threshold__label--needs-work">
-          <span class="threshold__dot"></span>
-          Needs work
-        </div>
-
-        <span class="threshold__value">0–60%</span>
-      </div>
-    </div>
-
-    <p class="settings-section__hint">Custom threshold editing coming soon.</p>
+    <p class="settings-section__hint">These ranges are fixed for now.</p>
   </section>
 </div>

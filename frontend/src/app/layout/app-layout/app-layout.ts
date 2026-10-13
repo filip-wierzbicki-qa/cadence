@@ -1,22 +1,20 @@
-import { Component, ElementRef, HostListener, inject, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, inject, signal, viewChild } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { Logo } from '@shared/ui/logo/logo';
 import {
-  LucideLayoutDashboard,
   LucideCalendarDays,
-  LucideHistory,
-  LucideTarget,
-  LucideSettings,
-  LucideLogOut,
   LucideChevronUp,
-  LucideChevronDown,
+  LucideHistory,
+  LucideLayoutDashboard,
+  LucideLogOut,
+  LucideSettings,
+  LucideTarget,
 } from '@lucide/angular';
+
 import { AuthService } from '@core/services/auth.service';
-import { UserProfile } from '@models/loginModel';
+import { Logo } from '@shared/ui/logo/logo';
 
 @Component({
   selector: 'app-app-layout',
-  standalone: true,
   imports: [
     RouterLink,
     RouterLinkActive,
@@ -29,7 +27,6 @@ import { UserProfile } from '@models/loginModel';
     LucideSettings,
     LucideLogOut,
     LucideChevronUp,
-    LucideChevronDown,
   ],
   templateUrl: './app-layout.html',
   styleUrl: './app-layout.scss',
@@ -37,29 +34,37 @@ import { UserProfile } from '@models/loginModel';
 export class AppLayout {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
-  isUserMenuOpen = false;
+
+  readonly isUserMenuOpen = signal(false);
   readonly currentUser = this.authService.currentUser;
 
-  @ViewChild('userMenu')
-  private userMenu?: ElementRef<HTMLElement>;
+  private readonly userMenu = viewChild<ElementRef<HTMLElement>>('userMenu');
+  private readonly userTrigger = viewChild<ElementRef<HTMLButtonElement>>('userTrigger');
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
-    if (!this.isUserMenuOpen) {
+    if (!this.isUserMenuOpen()) {
       return;
     }
 
-    const target = event.target as Node;
-
-    const clickedInside = this.userMenu?.nativeElement.contains(target);
-
-    if (!clickedInside) {
-      this.isUserMenuOpen = false;
+    if (!this.userMenu()?.nativeElement.contains(event.target as Node)) {
+      this.isUserMenuOpen.set(false);
     }
   }
 
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (!this.isUserMenuOpen()) {
+      return;
+    }
+
+    this.isUserMenuOpen.set(false);
+    // Keep keyboard users where they were instead of dropping focus on the page.
+    this.userTrigger()?.nativeElement.focus();
+  }
+
   toggleUserMenu(): void {
-    this.isUserMenuOpen = !this.isUserMenuOpen;
+    this.isUserMenuOpen.update((open) => !open);
   }
 
   logout(): void {

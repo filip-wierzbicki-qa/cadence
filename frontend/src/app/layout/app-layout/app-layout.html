@@ -1,65 +1,105 @@
 <div class="app-layout">
   <aside class="sidebar">
     <div class="sidebar__logo">
-      <app-logo />
+      <a class="sidebar__home" routerLink="/dashboard" aria-label="Cadence, go to dashboard">
+        <app-logo />
+      </a>
     </div>
 
-    <nav class="sidebar__nav">
-      <a routerLink="/dashboard" routerLinkActive="active" class="sidebar__link">
-        <svg lucideLayoutDashboard></svg>
+    <nav class="sidebar__nav" aria-label="Main">
+      <a
+        routerLink="/dashboard"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        class="sidebar__link"
+      >
+        <svg lucideLayoutDashboard aria-hidden="true"></svg>
         <span>Dashboard</span>
       </a>
-      <a routerLink="/today" routerLinkActive="active" class="sidebar__link">
-        <svg lucideCalendarDays></svg>
+      <a
+        routerLink="/today"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        class="sidebar__link"
+      >
+        <svg lucideCalendarDays aria-hidden="true"></svg>
         <span>Today</span>
       </a>
-      <a routerLink="/history" routerLinkActive="active" class="sidebar__link">
-        <svg lucideHistory></svg>
+      <a
+        routerLink="/history"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        class="sidebar__link"
+      >
+        <svg lucideHistory aria-hidden="true"></svg>
         <span>History</span>
       </a>
-      <a routerLink="/goals" routerLinkActive="active" class="sidebar__link">
-        <svg lucideTarget></svg>
+      <a
+        routerLink="/goals"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        class="sidebar__link"
+      >
+        <svg lucideTarget aria-hidden="true"></svg>
         <span>Goals</span>
       </a>
-      <a routerLink="/settings" routerLinkActive="active" class="sidebar__link sidebar__settings">
-        <svg lucideSettings></svg>
+      <a
+        routerLink="/settings"
+        routerLinkActive="active"
+        ariaCurrentWhenActive="page"
+        class="sidebar__link"
+      >
+        <svg lucideSettings aria-hidden="true"></svg>
         <span>Settings</span>
       </a>
     </nav>
 
     <div class="sidebar__bottom">
       <div class="user-menu" #userMenu>
-        @if (isUserMenuOpen) {
-          <div class="user-menu__popover">
-            <button type="button" class="user-menu__logout" (click)="logout()">
-              <svg lucideLogOut></svg>
+        @if (isUserMenuOpen()) {
+          <div
+            class="user-menu__popover"
+            id="user-menu"
+            role="menu"
+            animate.enter="user-menu__popover--in"
+            animate.leave="user-menu__popover--out"
+          >
+            <button type="button" class="user-menu__logout" role="menuitem" (click)="logout()">
+              <svg lucideLogOut aria-hidden="true"></svg>
               <span>Logout</span>
             </button>
           </div>
         }
-        <button type="button" class="user-card" (click)="toggleUserMenu()">
-          <div class="user-avatar">
+
+        <button
+          #userTrigger
+          type="button"
+          class="user-card"
+          aria-haspopup="menu"
+          aria-controls="user-menu"
+          [attr.aria-expanded]="isUserMenuOpen()"
+          (click)="toggleUserMenu()"
+        >
+          <div class="user-avatar" aria-hidden="true">
             {{ currentUser()?.profileInitial }}
           </div>
 
           <div class="user-card__details">
-            <div class="user-name">
-              {{ currentUser()?.display_name }}
-            </div>
-            <div class="user-email">
-              {{ currentUser()?.email }}
-            </div>
+            <div class="user-name">{{ currentUser()?.display_name }}</div>
+            <div class="user-email">{{ currentUser()?.email }}</div>
           </div>
 
-          @if (isUserMenuOpen) {
-            <svg lucideChevronDown class="user-card__chevron"></svg>
-          } @else {
-            <svg lucideChevronUp class="user-card__chevron"></svg>
-          }
+          <svg
+            lucideChevronUp
+            class="user-card__chevron"
+            [class.user-card__chevron--open]="isUserMenuOpen()"
+            aria-hidden="true"
+          ></svg>
         </button>
       </div>
     </div>
   </aside>
+
   <main class="content">
     <div class="page-container">
       <router-outlet />

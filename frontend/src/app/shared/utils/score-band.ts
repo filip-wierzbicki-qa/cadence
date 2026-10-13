@@ -46,3 +46,26 @@ export function scoreBand(score: number | null): ScoreBand {
 
   return BANDS.find((band) => score > band.above) ?? NO_SCORE;
 }
+
+export interface ScoreBandRange extends ScoreBand {
+  /** Lowest whole-number score in the band. */
+  from: number;
+  /** Highest whole-number score in the band. */
+  to: number;
+}
+
+/** The bands from best to worst with their whole-number ranges, e.g. for a legend. */
+export function scoreBandRanges(): ScoreBandRange[] {
+  return BANDS.map((band, index) => {
+    const better = BANDS[index - 1];
+
+    return {
+      label: band.label,
+      description: band.description,
+      color: band.color,
+      // A band starts just above its own threshold; the worst band has none, so it starts at 0.
+      from: Number.isFinite(band.above) ? band.above + 1 : 0,
+      to: better ? better.above : 100,
+    };
+  });
+}

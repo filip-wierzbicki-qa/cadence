@@ -1,6 +1,7 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
+
 import { AuthService } from '@core/services/auth.service';
-import { UserProfile } from '@models/loginModel';
+import { scoreBandRanges } from '@shared/utils/score-band';
 
 @Component({
   selector: 'app-settings',
@@ -10,5 +11,9 @@ import { UserProfile } from '@models/loginModel';
 })
 export class Settings {
   private readonly authService = inject(AuthService);
+
   readonly currentUser = this.authService.currentUser;
+
+  /** Derived from the same thresholds the app scores with, so this list cannot drift. */
+  readonly thresholds = scoreBandRanges();
 }
