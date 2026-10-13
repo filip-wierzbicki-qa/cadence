@@ -1,0 +1,218 @@
+// The status filter on the Goals page: a segmented control on wide layouts and a menu button on
+// narrow ones. Kept in its own stylesheet so each file stays within the component style budget.
+@use '../../../styles/utilities/mixins' as m;
+
+.goals {
+  // Segmented control: every option stays visible; one highlight slides to the selection.
+  // Options share equal widths, so the highlight is a simple one-third step per index.
+  &__filter {
+    --index: 0;
+    --inset: var(--space-1);
+
+    position: relative;
+
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+
+    padding: var(--inset);
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+
+    background: var(--color-surface);
+  }
+
+  &__filter-pill {
+    position: absolute;
+    inset-block: var(--inset);
+    left: var(--inset);
+
+    width: calc((100% - var(--inset) * 2) / 3);
+
+    border-radius: calc(var(--radius-control) - var(--inset));
+
+    background: var(--color-surface-active);
+
+    transform: translateX(calc(var(--index) * 100%));
+    transition: transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1);
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  &__filter-option {
+    position: relative;
+
+    padding: var(--space-2) var(--space-4);
+
+    border: 0;
+    border-radius: calc(var(--radius-control) - var(--space-1));
+
+    background: transparent;
+    color: var(--color-text-secondary);
+
+    font: inherit;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+
+    cursor: pointer;
+
+    transition:
+      color 150ms ease,
+      transform 100ms ease-out;
+
+    &:hover {
+      color: var(--color-text-primary);
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 1px;
+    }
+
+    &--selected {
+      color: var(--color-text-primary);
+    }
+  }
+
+  // Narrow layout: a menu button instead of the segmented control.
+  &__filter-menu {
+    position: relative;
+
+    display: none;
+  }
+
+  &__filter-trigger {
+    @include m.action-button;
+
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+
+    padding: var(--space-3) var(--space-4);
+
+    font-size: var(--font-size-sm);
+  }
+
+  &__filter-chevron {
+    width: 16px;
+    height: 16px;
+
+    transition: transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1);
+
+    &--open {
+      transform: rotate(180deg);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  &__filter-popover {
+    position: absolute;
+    top: calc(100% + var(--space-2));
+    left: 0;
+    z-index: 10;
+
+    min-width: 100%;
+    padding: var(--space-1);
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-control);
+
+    background: var(--color-surface);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 35%);
+
+    // Anchored to the button it came from.
+    transform-origin: top left;
+
+    &--in {
+      animation: goals-menu-in 200ms cubic-bezier(0.2, 0.9, 0.3, 1);
+    }
+
+    &--out {
+      animation: goals-menu-out 140ms ease-in forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      &--in,
+      &--out {
+        animation-duration: 1ms;
+      }
+    }
+  }
+
+  &__filter-item {
+    display: block;
+
+    width: 100%;
+    padding: var(--space-3);
+
+    border: 0;
+    border-radius: var(--radius-sm);
+
+    background: transparent;
+    color: var(--color-text-secondary);
+
+    font: inherit;
+    font-size: var(--font-size-sm);
+    text-align: left;
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+      background 150ms ease,
+      transform 100ms ease-out;
+
+    &:hover {
+      background: var(--color-surface-hover);
+      color: var(--color-text-primary);
+    }
+
+    &:active {
+      transform: scale(0.97);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: -2px;
+    }
+
+    &[aria-checked='true'] {
+      color: var(--color-text-primary);
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+}
+
+@keyframes goals-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+
+@keyframes goals-menu-out {
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+
+// The segmented control needs about 20rem; below that the choice moves into a menu.
+@container goals (max-width: 34rem) {
+  .goals__filter {
+    display: none;
+  }
+
+  .goals__filter-menu {
+    display: block;
+  }
+}

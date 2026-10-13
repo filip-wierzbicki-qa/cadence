@@ -141,4 +141,46 @@ describe('Goals', () => {
 
     expect(el().querySelector('.goals__toast')).toBeNull();
   });
+
+  it('slides the selection highlight by index and keeps every option visible', async () => {
+    list().flush([goal({ id: 'a' })]);
+    await settle();
+
+    const filter = el().querySelector<HTMLElement>('.goals__filter')!;
+    const options = el().querySelectorAll('.goals__filter-option');
+
+    expect(options.length).toBe(3);
+    expect(filter.style.getPropertyValue('--index')).toBe('0');
+
+    fixture.componentInstance.setStatusFilter('all');
+    fixture.detectChanges();
+
+    expect(filter.style.getPropertyValue('--index')).toBe('2');
+    expect(options[2].getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('offers the filter as a menu that closes on choice and on Escape', async () => {
+    list().flush([goal({ id: 'a' })]);
+    await settle();
+
+    const component = fixture.componentInstance;
+    const trigger = el().querySelector<HTMLButtonElement>('.goals__filter-trigger')!;
+
+    trigger.click();
+    fixture.detectChanges();
+
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(el().querySelectorAll('[role="menuitemradio"]').length).toBe(3);
+
+    const items = el().querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]');
+    items[1].click();
+    fixture.detectChanges();
+
+    expect(component.statusFilter()).toBe('inactive');
+    expect(component.isFilterMenuOpen()).toBe(false);
+
+    component.toggleFilterMenu();
+    component.onEscape();
+    expect(component.isFilterMenuOpen()).toBe(false);
+  });
 });

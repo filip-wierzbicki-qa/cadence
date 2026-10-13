@@ -1,9 +1,19 @@
-import { Component, computed, DestroyRef, inject, linkedSignal, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  DestroyRef,
+  ElementRef,
+  HostListener,
+  inject,
+  linkedSignal,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { rxResource, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
-import { LucideGripVertical, LucidePencil, LucidePlus } from '@lucide/angular';
+import { LucideChevronDown, LucideGripVertical, LucidePencil, LucidePlus } from '@lucide/angular';
 import { filter } from 'rxjs';
 
 import { GoalsService } from '@core/api/goals.service';
@@ -37,10 +47,11 @@ const UNDO_WINDOW_MS = 8000;
     Button,
     Icon,
     LucideGripVertical,
+    LucideChevronDown,
     DragDropModule,
   ],
   templateUrl: './goals.html',
-  styleUrl: './goals.scss',
+  styleUrls: ['./goals.scss', './goals-filter.scss'],
 })
 export class Goals {
   private readonly router = inject(Router);
@@ -55,6 +66,18 @@ export class Goals {
   readonly placeholders = [1, 2, 3];
 
   readonly statusFilter = signal<GoalStatusFilter>('active');
+  readonly isFilterMenuOpen = signal(false);
+
+  /** Position of the selected option, which is where the sliding highlight sits. */
+  readonly statusFilterIndex = computed(() =>
+    this.statusFilters.findIndex((option) => option.value === this.statusFilter()),
+  );
+  readonly statusFilterLabel = computed(
+    () => this.statusFilters[this.statusFilterIndex()]?.label ?? '',
+  );
+
+  private readonly filterMenu = viewChild<ElementRef<HTMLElement>>('filterMenu');
+  private readonly filterTrigger = viewChild<ElementRef<HTMLButtonElement>>('filterTrigger');
   readonly reorderError = signal<string | null>(null);
   readonly deactivated = signal<GoalDeactivatedState | null>(null);
 
@@ -124,6 +147,32 @@ export class Goals {
 
   setStatusFilter(value: GoalStatusFilter): void {
     this.statusFilter.set(value);
+    this.isFilterMenuOpen.set(false);
+  }
+
+  toggleFilterMenu(): void {
+    this.isFilterMenuOpen.update((open) => !open);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.isFilterMenuOpen()) {
+      return;
+    }
+
+    if (!this.filterMenu()?.nativeElement.contains(event.target as Node)) {
+      this.isFilterMenuOpen.set(false);
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (!this.isFilterMenuOpen()) {
+      return;
+    }
+
+    this.isFilterMenuOpen.set(false);
+    this.filterTrigger()?.nativeElement.focus();
   }
 
   onGoalDrop(event: CdkDragDrop<GoalResponse[]>): void {

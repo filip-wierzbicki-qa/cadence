@@ -40,6 +40,8 @@
     </div>
 
     <div class="history__header__bottom" [attr.aria-busy]="rangeScore() === null">
+      <span class="history__picker-pill" aria-hidden="true"></span>
+
       @if (rangeScore() === null && !rangeResource.error()) {
         @for (placeholder of pickerPlaceholders; track $index) {
           <div class="history__picker-skeleton" aria-hidden="true"></div>

@@ -100,6 +100,9 @@ export class History {
   /** Horizontal position of each day button (by timestamp), as of the last layout pass. */
   private pickerPositions: Map<string, PickerSlot> | null = null;
 
+  /** Visual x of the selection highlight as of the last pass, so it can slide to its next spot. */
+  private pickerPillX: number | null = null;
+
   constructor() {
     // Whenever the selection or the scores change, re-centre the picker and slide the days
     // from where they were to where they are now.
@@ -221,6 +224,12 @@ export class History {
   /** Called right before the selection changes, so the user's own scrolling is accounted for. */
   private rememberPickerPositions(): void {
     this.pickerPositions = this.measurePicker();
+
+    const strip = this.pickerStrip();
+    const pill = strip?.querySelector<HTMLElement>('.history__picker-pill');
+
+    this.pickerPillX =
+      strip && pill && pill.style.display === 'block' ? pill.offsetLeft - strip.scrollLeft : null;
   }
 
   private animatePicker(): void {
@@ -261,6 +270,43 @@ export class History {
     }
 
     this.pickerPositions = current;
+    this.movePickerPill(strip, reduceMotion);
+  }
+
+  /** One highlight sits behind the selected day and slides to the new one, like a segmented control. */
+  private movePickerPill(strip: HTMLElement, reduceMotion: boolean): void {
+    const pill = strip.querySelector<HTMLElement>('.history__picker-pill');
+    const selected = strip.querySelector<HTMLElement>('.selectedDate');
+
+    if (!pill) {
+      return;
+    }
+
+    if (!selected) {
+      pill.style.display = 'none';
+      this.pickerPillX = null;
+      return;
+    }
+
+    Object.assign(pill.style, {
+      display: 'block',
+      left: `${selected.offsetLeft}px`,
+      top: `${selected.offsetTop}px`,
+      width: `${selected.offsetWidth}px`,
+      height: `${selected.offsetHeight}px`,
+    });
+
+    const after = selected.offsetLeft - strip.scrollLeft;
+    const before = this.pickerPillX;
+
+    if (before !== null && !reduceMotion && Math.abs(before - after) > 0.5) {
+      pill.animate(
+        [{ transform: `translateX(${before - after}px)` }, { transform: 'translateX(0)' }],
+        { duration: 320, easing: 'cubic-bezier(0.2, 0.9, 0.3, 1)' },
+      );
+    }
+
+    this.pickerPillX = after;
   }
 
   private changeDate(date: Date): void {

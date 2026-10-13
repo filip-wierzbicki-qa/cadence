@@ -185,4 +185,15 @@ describe('History', () => {
     expect(el().querySelector('.history__picker-skeleton')).toBeNull();
     expect(el().querySelectorAll('.history__header__bottom button').length).toBe(12);
   });
+
+  it('draws the selected day with a separate highlight so it can slide', async () => {
+    entries().flush([GOAL]);
+    range().flush([day(80)]);
+    await settle();
+
+    const pill = el().querySelector('.history__header__bottom .history__picker-pill');
+    expect(pill).toBeTruthy();
+    expect(pill?.getAttribute('aria-hidden')).toBe('true');
+    expect(el().querySelector('.selectedDate')).toBeTruthy();
+  });
 });

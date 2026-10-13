@@ -5,6 +5,8 @@
 }
 
 .goals {
+  container: goals / inline-size;
+
   display: flex;
   flex-direction: column;
   gap: var(--space-7);
@@ -34,58 +36,6 @@
 
     app-button {
       flex: none;
-    }
-  }
-
-  // Segmented control: one choice at a time, all options visible.
-  &__filter {
-    display: inline-flex;
-    gap: var(--space-1);
-
-    padding: var(--space-1);
-
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-control);
-
-    background: var(--color-surface);
-  }
-
-  &__filter-option {
-    padding: var(--space-2) var(--space-4);
-
-    border: 0;
-    border-radius: calc(var(--radius-control) - var(--space-1));
-
-    background: transparent;
-    color: var(--color-text-secondary);
-
-    font: inherit;
-    font-size: var(--font-size-sm);
-    font-weight: var(--font-weight-medium);
-
-    cursor: pointer;
-
-    transition:
-      background 150ms ease,
-      color 150ms ease,
-      transform 100ms ease-out;
-
-    &:hover {
-      color: var(--color-text-primary);
-    }
-
-    &:active {
-      transform: scale(0.97);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--color-primary);
-      outline-offset: 1px;
-    }
-
-    &--selected {
-      background: var(--color-surface-active);
-      color: var(--color-text-primary);
     }
   }
 

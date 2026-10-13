@@ -32,6 +32,8 @@
 
     // A horizontally scrollable day picker: twelve days never fit in a narrow column.
     &__bottom {
+      position: relative;
+
       display: flex;
       gap: var(--space-2);
 
@@ -46,6 +48,10 @@
 
       button {
         flex: none;
+
+        // Sits above the selection highlight.
+        position: relative;
+        z-index: 1;
 
         padding: var(--space-2);
 
@@ -82,8 +88,8 @@
           outline-offset: 2px;
         }
 
+        // The highlight itself is drawn by `.history__picker-pill`, which slides between days.
         &.selectedDate {
-          background: var(--color-surface-active);
           color: var(--color-text-primary);
         }
       }
@@ -103,6 +109,20 @@
         }
       }
     }
+  }
+
+  &__picker-pill {
+    position: absolute;
+    z-index: 0;
+
+    // Positioned and sized from script to match the selected day; hidden until there is one.
+    display: none;
+
+    border-radius: var(--radius-card);
+
+    background: var(--color-surface-active);
+
+    pointer-events: none;
   }
 
   &__heading {

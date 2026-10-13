@@ -3,7 +3,15 @@
     <h1 class="goals__title">Goals</h1>
 
     <div class="goals__actions">
-      <div class="goals__filter" role="group" aria-label="Show goals">
+      <!-- Wide: every option visible, with one highlight that slides to the selected one. -->
+      <div
+        class="goals__filter"
+        role="group"
+        aria-label="Show goals"
+        [style.--index]="statusFilterIndex()"
+      >
+        <span class="goals__filter-pill" aria-hidden="true"></span>
+
         @for (option of statusFilters; track option.value) {
           <button
             type="button"
@@ -14,6 +22,50 @@
           >
             {{ option.label }}
           </button>
+        }
+      </div>
+
+      <!-- Narrow: the same choice as a menu, so the Add button keeps its room. -->
+      <div class="goals__filter-menu" #filterMenu>
+        <button
+          #filterTrigger
+          type="button"
+          class="goals__filter-trigger"
+          aria-haspopup="menu"
+          aria-controls="goals-filter-menu"
+          [attr.aria-label]="'Show goals: ' + statusFilterLabel()"
+          [attr.aria-expanded]="isFilterMenuOpen()"
+          (click)="toggleFilterMenu()"
+        >
+          <span class="goals__filter-trigger-label">{{ statusFilterLabel() }}</span>
+          <svg
+            lucideChevronDown
+            class="goals__filter-chevron"
+            [class.goals__filter-chevron--open]="isFilterMenuOpen()"
+            aria-hidden="true"
+          ></svg>
+        </button>
+
+        @if (isFilterMenuOpen()) {
+          <div
+            class="goals__filter-popover"
+            id="goals-filter-menu"
+            role="menu"
+            animate.enter="goals__filter-popover--in"
+            animate.leave="goals__filter-popover--out"
+          >
+            @for (option of statusFilters; track option.value) {
+              <button
+                type="button"
+                class="goals__filter-item"
+                role="menuitemradio"
+                [attr.aria-checked]="statusFilter() === option.value"
+                (click)="setStatusFilter(option.value)"
+              >
+                {{ option.label }}
+              </button>
+            }
+          </div>
         }
       </div>
 
