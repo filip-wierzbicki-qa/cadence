@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { catchError, map, Observable, of, tap } from 'rxjs';
+import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { LoginRequest, LoginResponse, UserProfile } from '@models/loginModel';
 import { RegisterRequest, RegisterResponse } from '@models/registerModel';
@@ -17,10 +17,24 @@ export class AuthService {
 
   readonly currentUser = signal<UserProfile | null>(null);
 
+  /**
+   * Signs in and loads the profile as part of the same step, so whoever is waiting on this
+   * observable (the sign-in button) stays busy until the next screen has everything it needs.
+   */
   login(credentials: LoginRequest): Observable<LoginResponse> {
-    return this.http
-      .post<LoginResponse>(`${this.apiAuthUrl}/login`, credentials)
-      .pipe(tap((response) => this.saveSession(response)));
+    return this.http.post<LoginResponse>(`${this.apiAuthUrl}/login`, credentials).pipe(
+      tap((response) => this.saveSession(response)),
+      switchMap((response) =>
+        this.getCurrentUser().pipe(
+          map(() => response),
+          catchError((error) => {
+            // Half signed in is worse than not signed in.
+            this.logout();
+            return throwError(() => error);
+          }),
+        ),
+      ),
+    );
   }
 
   register(credentials: RegisterRequest): Observable<RegisterResponse> {
@@ -61,6 +75,11 @@ export class AuthService {
 
     if (!token) {
       return of(false);
+    }
+
+    // The profile is already loaded (for example by `login`), so there is nothing to wait for.
+    if (this.currentUser()) {
+      return of(true);
     }
 
     return this.getCurrentUser().pipe(

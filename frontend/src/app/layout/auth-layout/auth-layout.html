@@ -20,11 +20,14 @@
   </aside>
 
   <main class="content">
-    <!-- The hero is hidden on small screens, so the brand moves above the form. -->
-    <div class="content__brand">
-      <app-logo />
-    </div>
+    <!-- One column, so the brand and the form share the same left edge at every width. -->
+    <div class="content__column">
+      <!-- The hero is hidden on small screens, so the brand moves above the form. -->
+      <a class="content__brand" routerLink="/login" aria-label="Cadence">
+        <app-logo size="lg" />
+      </a>
 
-    <router-outlet />
+      <router-outlet />
+    </div>
   </main>
 </div>

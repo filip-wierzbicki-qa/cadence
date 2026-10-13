@@ -77,7 +77,7 @@ describe('Login', () => {
     expect(fixture.componentInstance.loginForm.controls.email.value).toBe('new@example.com');
   });
 
-  it('goes to the dashboard after signing in', () => {
+  it('stays busy through sign-in, profile load and navigation, then goes to the dashboard', async () => {
     vi.stubGlobal('localStorage', { setItem: vi.fn(), getItem: vi.fn(), removeItem: vi.fn() });
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
     component.loginForm.setValue({ email: 'ada@example.com', password: 'secret' });
@@ -87,7 +87,36 @@ describe('Login', () => {
       .expectOne((req) => req.url.endsWith('/auth/login'))
       .flush({ access_token: 'a', refresh_token: 'r' });
 
+    // Signed in, but the profile is still loading: the button must not be released yet.
+    expect(component.isSubmitting()).toBe(true);
+    expect(navigate).not.toHaveBeenCalled();
+
+    http
+      .expectOne((req) => req.url.endsWith('/me'))
+      .flush({ display_name: 'Ada', email: 'ada@example.com' });
+    await Promise.resolve();
+
     expect(navigate).toHaveBeenCalledWith(['/dashboard']);
+    expect(component.isSubmitting()).toBe(true);
+
+    vi.unstubAllGlobals();
+  });
+
+  it('releases the button and reports an error if the profile cannot be loaded', () => {
+    vi.stubGlobal('localStorage', { setItem: vi.fn(), getItem: vi.fn(), removeItem: vi.fn() });
+    component.loginForm.setValue({ email: 'ada@example.com', password: 'secret' });
+
+    component.login();
+    http
+      .expectOne((req) => req.url.endsWith('/auth/login'))
+      .flush({ access_token: 'a', refresh_token: 'r' });
+    http
+      .expectOne((req) => req.url.endsWith('/me'))
+      .flush('boom', { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+
+    expect(component.isSubmitting()).toBe(false);
+    expect(el().querySelector('.banner--error')).toBeTruthy();
 
     vi.unstubAllGlobals();
   });

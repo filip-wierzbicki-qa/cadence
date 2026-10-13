@@ -20,3 +20,17 @@ svg {
   align-items: center;
   flex-direction: row;
 }
+
+.logo--lg {
+  svg {
+    width: 44px;
+    height: 44px;
+  }
+
+  .logo-text {
+    margin-left: 0.625rem;
+
+    font-size: var(--font-size-3xl);
+    letter-spacing: -0.02em;
+  }
+}

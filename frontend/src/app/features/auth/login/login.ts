@@ -2,7 +2,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
-import { finalize } from 'rxjs';
 
 import { AuthService } from '@core/services/auth.service';
 import { Button } from '@shared/ui/button/button';
@@ -44,15 +43,21 @@ export class Login {
     this.errorMessage.set(null);
     this.justRegistered.set(false);
 
-    this.authService
-      .login(this.loginForm.getRawValue())
-      .pipe(finalize(() => this.isSubmitting.set(false)))
-      .subscribe({
-        next: () => this.router.navigate(['/dashboard']),
-        error: (error: HttpErrorResponse) => {
-          this.errorMessage.set(this.describe(error));
-        },
-      });
+    // The button stays busy from the press until the dashboard is on screen. Releasing it as soon
+    // as the response arrives leaves a dead gap where nothing looks like it is happening.
+    this.authService.login(this.loginForm.getRawValue()).subscribe({
+      next: async () => {
+        const navigated = await this.router.navigate(['/dashboard']);
+
+        if (!navigated) {
+          this.isSubmitting.set(false);
+        }
+      },
+      error: (error: HttpErrorResponse) => {
+        this.isSubmitting.set(false);
+        this.errorMessage.set(this.describe(error));
+      },
+    });
   }
 
   private describe(error: HttpErrorResponse): string {
