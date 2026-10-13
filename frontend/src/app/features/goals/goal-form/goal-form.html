@@ -1,17 +1,30 @@
 <div class="goal-modal">
-  <div class="goal-modal__backdrop" (click)="close()"></div>
-  <div class="goal-modal__dialog">
+  <div class="goal-modal__backdrop" (click)="requestClose()"></div>
+
+  <div
+    class="goal-modal__dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="goal-modal-title"
+    cdkTrapFocus
+  >
     <div class="goal-modal__header">
-      <h2 class="goal-modal__title">
+      <h2 class="goal-modal__title" id="goal-modal-title">
         {{ isEditMode ? 'Edit goal' : 'Add goal' }}
       </h2>
 
-      <button type="button" class="goal-modal__close" (click)="close()" aria-label="Close">
+      <button type="button" class="goal-modal__close" (click)="requestClose()" aria-label="Close">
         ×
       </button>
     </div>
+
     @if (isLoading()) {
       <app-loader></app-loader>
+    } @else if (loadError()) {
+      <div class="goal-modal__error" role="alert">
+        <p>Couldn't load this goal.</p>
+        <app-button type="button" variant="secondary" (click)="close()">Close</app-button>
+      </div>
     } @else {
       <form
         class="goal-form"
@@ -25,52 +38,61 @@
           [variant]="'filled'"
           [autoFocus]="true"
           [autoSelect]="true"
+          showErrorsOn="dirty"
           placeholder="e.g. Learn a new language"
           formControlName="name"
         />
+
         <div class="goal-form__row">
           <div class="goal-form__field">
-            <label>Color</label>
+            <label for="goal-color">Color</label>
             <div class="goal-form__color">
               <input id="goal-color" type="color" formControlName="color" />
             </div>
           </div>
+
           <div class="goal-form__field">
-            <label>Icon</label>
+            <label id="goal-icon-label">Icon</label>
             <app-icon-picker
               [value]="form.controls.icon.value"
               [color]="form.controls.color.value"
               [style.--goal-color]="form.controls.color.value"
-              (valueChange)="form.controls.icon.setValue($event)"
+              (valueChange)="setIcon($event)"
             />
           </div>
         </div>
+
         <div class="goal-form__field">
           <div class="goal-form__target">
-            <select formControlName="target_type">
+            <select formControlName="target_type" aria-label="Target type">
               <option value="min">At least</option>
               <option value="max">At most</option>
             </select>
+
             <app-input
               id="goal-value"
               label="Value"
               [min]="0"
               [variant]="'filled'"
               [step]="1"
+              showErrorsOn="dirty"
               placeholder="e.g. 2,000"
               formControlName="target_value"
             />
+
             <app-input
               id="goal-unit"
               label="Unit"
               [variant]="'filled'"
+              showErrorsOn="dirty"
               placeholder="e.g. calories"
               formControlName="unit"
             />
           </div>
         </div>
-        <div class="goal-form__field">
-          <label>Logging period</label>
+
+        <div class="goal-form__field" role="radiogroup" aria-labelledby="goal-period-label">
+          <label id="goal-period-label">Logging period</label>
           <div class="goal-form__chips">
             <label class="goal-form__chip">
               <input type="radio" formControlName="period" value="daily" />
@@ -82,9 +104,10 @@
             </label>
           </div>
         </div>
-        @if (canBeDeactivated) {
-          <div class="goal-form__field">
-            <label>State</label>
+
+        @if (isInactive()) {
+          <div class="goal-form__field" role="radiogroup" aria-labelledby="goal-state-label">
+            <label id="goal-state-label">State</label>
             <div class="goal-form__chips">
               <label class="goal-form__chip">
                 <input type="radio" formControlName="is_active" [value]="true" />
@@ -98,18 +121,51 @@
             </div>
           </div>
         }
-        <div
-          class="goal-form__actions"
-          [style.justify-content]="isEditMode && !canBeDeactivated ? 'space-between' : 'flex-end'"
-        >
-          @if (isEditMode && !canBeDeactivated) {
-            <app-button type="button" variant="danger" (click)="delete(goalId!)">
-              Delete goal
+
+        @if (submitError(); as message) {
+          <p class="goal-form__error" role="alert">{{ message }}</p>
+        }
+
+        @if (confirmingDiscard()) {
+          <div class="goal-form__discard" role="alertdialog" aria-label="Discard changes?">
+            <span>Discard your changes?</span>
+
+            <div class="goal-form__discard-actions">
+              <app-button type="button" variant="secondary" (click)="keepEditing()">
+                Keep editing
+              </app-button>
+              <app-button type="button" variant="danger" (click)="discard()">Discard</app-button>
+            </div>
+          </div>
+        }
+
+        <div class="goal-form__actions">
+          @if (isEditMode && !isInactive()) {
+            <app-button
+              class="goal-form__deactivate"
+              type="button"
+              variant="danger"
+              [disabled]="isSaving()"
+              (click)="deactivate()"
+            >
+              Deactivate
             </app-button>
           }
-          <app-button type="submit" variant="primary">
-            {{ isEditMode ? 'Save changes' : 'Add goal' }}
-          </app-button>
+
+          <div class="goal-form__primary-actions">
+            <app-button
+              type="button"
+              variant="secondary"
+              [disabled]="isSaving()"
+              (click)="discard()"
+            >
+              Discard
+            </app-button>
+
+            <app-button type="submit" variant="primary" [disabled]="isSaving() || form.invalid">
+              {{ isSaving() ? 'Saving…' : isEditMode ? 'Save changes' : 'Add goal' }}
+            </app-button>
+          </div>
         </div>
       </form>
     }

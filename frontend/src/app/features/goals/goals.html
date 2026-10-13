@@ -1,105 +1,125 @@
 <div class="goals">
-  <div class="goals__header">
-    <div>
-      <h1>Goals</h1>
-    </div>
+  <header class="goals__header">
+    <h1 class="goals__title">Goals</h1>
 
     <div class="goals__actions">
-      <select class="goals__filter" [value]="statusFilter" (change)="onStatusFilterChange($event)">
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-        <option value="all">All</option>
-      </select>
+      <div class="goals__filter" role="group" aria-label="Show goals">
+        @for (option of statusFilters; track option.value) {
+          <button
+            type="button"
+            class="goals__filter-option"
+            [class.goals__filter-option--selected]="statusFilter() === option.value"
+            [attr.aria-pressed]="statusFilter() === option.value"
+            (click)="setStatusFilter(option.value)"
+          >
+            {{ option.label }}
+          </button>
+        }
+      </div>
 
       <app-button type="button" variant="primary" (click)="addGoal()">
-        <svg lucidePlus></svg>
+        <svg lucidePlus aria-hidden="true"></svg>
         Add goal
       </app-button>
     </div>
-  </div>
+  </header>
 
-  <section class="goals-section">
-    @if (dailyGoals.length > 0) {
-      <ng-container
-        *ngTemplateOutlet="
-          goalSection;
-          context: {
-            title: 'DAILY',
-            goals: dailyGoals,
-          }
-        "
-      ></ng-container>
-    }
-    @if (weeklyGoals.length > 0) {
-      <ng-container
-        *ngTemplateOutlet="
-          goalSection;
-          context: {
-            title: 'WEEKLY',
-            goals: weeklyGoals,
-          }
-        "
-      ></ng-container>
-    }
-    @if (!dailyGoals.length && !weeklyGoals.length) {
-      <div class="goals__empty">
-        <h2 class="goals__empty-title">No goals</h2>
+  @if (reorderError(); as message) {
+    <p class="goals__notice" role="alert">{{ message }}</p>
+  }
 
-        <p class="goals__empty-text">Add a goal to start tracking your day.</p>
-      </div>
+  @if (goalsResource.error()) {
+    <div class="goals__empty" role="alert">
+      <h2 class="goals__empty-title">Couldn't load your goals</h2>
+      <p class="goals__empty-text">Check your connection and try again.</p>
+      <button class="goals__retry" type="button" (click)="goalsResource.reload()">Try again</button>
+    </div>
+  } @else if (!goalsResource.hasValue()) {
+    <div class="goals-section__list" aria-busy="true">
+      <span class="goals__sr-only" role="status">Loading your goals…</span>
+      @for (placeholder of placeholders; track placeholder) {
+        <div class="goals__skeleton" aria-hidden="true"></div>
+      }
+    </div>
+  } @else if (isEmpty()) {
+    <div class="goals__empty">
+      <h2 class="goals__empty-title">
+        {{ statusFilter() === 'inactive' ? 'No inactive goals' : 'No goals' }}
+      </h2>
+
+      <p class="goals__empty-text">
+        {{
+          statusFilter() === 'inactive'
+            ? 'Goals you deactivate will show up here.'
+            : 'Add a goal to start tracking your day.'
+        }}
+      </p>
+    </div>
+  } @else {
+    @for (section of sections(); track section.period) {
+      <section class="goals-section" [attr.aria-label]="section.title + ' goals'">
+        <h2 class="goals-section__title">{{ section.title }}</h2>
+
+        <div
+          class="goals-section__list"
+          cdkDropList
+          [cdkDropListData]="section.goals"
+          (cdkDropListDropped)="onGoalDrop($event)"
+        >
+          @for (goal of section.goals; track goal.id; let index = $index) {
+            <article class="goal-card" [class.goal-card--inactive]="!goal.is_active" cdkDrag>
+              <button
+                type="button"
+                class="goal-card__drag-handle"
+                cdkDragHandle
+                [attr.aria-label]="'Reorder ' + goal.name + '. Use arrow keys to move.'"
+                (keydown)="onHandleKeydown($event, section, index)"
+              >
+                <svg lucideGripVertical aria-hidden="true"></svg>
+              </button>
+
+              <div class="goal-card__content">
+                <div class="goal-card__icon" [style.--goal-color]="goal.color">
+                  <app-icon [name]="goal.icon" [color]="goal.color" [size]="22" />
+                </div>
+
+                <div class="goal-card__info">
+                  <h3 class="goal-card__name">{{ goal.name }}</h3>
+
+                  <span class="goal-card__type">
+                    {{ goal.target_type === 'min' ? 'At least' : 'At most' }}
+                    @if (!goal.is_active) {
+                      · Inactive
+                    }
+                  </span>
+                </div>
+              </div>
+
+              <div class="goal-card__target">
+                {{ goal.target_value | number: '1.0-2' }} {{ goal.unit }}
+              </div>
+
+              <button
+                type="button"
+                class="goal-card__edit"
+                [attr.aria-label]="'Edit ' + goal.name"
+                (click)="editGoal(goal.id)"
+              >
+                <svg lucidePencil aria-hidden="true"></svg>
+              </button>
+            </article>
+          }
+        </div>
+      </section>
     }
-  </section>
+  }
 </div>
 
-<ng-template #goalSection let-title="title" let-goals="goals">
-  <h2 class="goals-section__title">{{ title }}</h2>
-  <div
-    class="goals-section__list"
-    cdkDropList
-    [cdkDropListData]="goals"
-    (cdkDropListDropped)="onGoalDrop($event)"
-  >
-    @for (goal of goals; track goal.id) {
-      <article class="goal-card" cdkDrag>
-        <button
-          type="button"
-          class="goal-card__drag-handle"
-          cdkDragHandle
-          aria-label="Reorder goal"
-        >
-          <svg lucideGripVertical></svg>
-        </button>
-        <div class="goal-card__content">
-          <div class="goal-card__icon" [style.--goal-color]="goal.color">
-            <app-icon [name]="goal.icon" [color]="goal.color" [size]="22" />
-          </div>
-
-          <div class="goal-card__info">
-            <h3 class="goal-card__name">
-              {{ goal.name }}
-            </h3>
-
-            <span class="goal-card__type">
-              {{ goal.target_type === 'min' ? 'At least' : 'At most' }}
-            </span>
-          </div>
-        </div>
-
-        <div class="goal-card__target">
-          {{ goal.target_value | number: '1.0-2' }} {{ goal.unit }}
-        </div>
-
-        <button
-          type="button"
-          class="goal-card__edit"
-          (click)="editGoal(goal.id)"
-          aria-label="Edit goal"
-        >
-          <svg lucidePencil></svg>
-        </button>
-      </article>
-    }
+@if (deactivated(); as goal) {
+  <div class="goals__toast" role="status">
+    <span>{{ goal.name }} deactivated</span>
+    <button type="button" class="goals__toast-action" (click)="undoDeactivate()">Undo</button>
   </div>
-</ng-template>
+}
 
-<router-outlet (deactivate)="getGoals()"></router-outlet>
+<router-outlet (deactivate)="goalsResource.reload()"></router-outlet>

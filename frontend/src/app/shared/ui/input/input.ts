@@ -13,7 +13,13 @@ import {
   ElementRef,
 } from '@angular/core';
 import { LucideEye, LucideEyeClosed } from '@lucide/angular';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR, NgControl, ValidationErrors } from '@angular/forms';
+import {
+  AbstractControl,
+  ControlValueAccessor,
+  NG_VALUE_ACCESSOR,
+  NgControl,
+  ValidationErrors,
+} from '@angular/forms';
 
 @Component({
   selector: 'app-input',
@@ -39,6 +45,12 @@ export class InputComponent implements ControlValueAccessor, OnInit, AfterViewIn
   readonly autoSelect = input(false);
   readonly tabIndex = input<number>(0);
   readonly variant = input<'default' | 'filled' | 'entry'>('default');
+  /**
+   * When validation messages become eligible to show: after the field was left (`touched`, the
+   * default) or only once the user has changed it (`dirty`). `dirty` keeps a freshly opened,
+   * still-empty required field quiet even if focus moves away from it.
+   */
+  readonly showErrorsOn = input<'touched' | 'dirty'>('touched');
 
   readonly value = signal<string>('');
   readonly disabled = signal(false);
@@ -83,7 +95,7 @@ export class InputComponent implements ControlValueAccessor, OnInit, AfterViewIn
         this.suppressUntilBlur.set(false);
       }
 
-      if (control?.touched || hasImmediateError) {
+      if (this.isEligibleForErrors(control) || hasImmediateError) {
         this.scheduleValidationUpdate();
       }
     });
@@ -191,10 +203,22 @@ export class InputComponent implements ControlValueAccessor, OnInit, AfterViewIn
     return this.suppressUntilBlur() ? null : this.validationMessage();
   }
 
+  private isEligibleForErrors(control: AbstractControl | null | undefined): boolean {
+    if (!control) {
+      return false;
+    }
+
+    return this.showErrorsOn() === 'dirty' ? control.dirty : control.touched;
+  }
+
   private getCurrentErrorMessage(): string | null {
     const control = this.ngControl?.control;
 
     if (!control?.errors) {
+      return null;
+    }
+
+    if (!this.hasImmediateError(control.errors) && !this.isEligibleForErrors(control)) {
       return null;
     }
 

@@ -1,41 +1,71 @@
-import { Component, HostListener, inject, OnInit, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Component, HostListener, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { A11yModule } from '@angular/cdk/a11y';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+
 import { GoalsService } from '@core/api/goals.service';
 import { GoalCreate, GoalPeriod, GoalTargetType } from '@models/goalModel';
 import { IconPicker } from '@shared/components/icon-picker/icon-picker';
 import { Button } from '@shared/ui/button/button';
 import { InputComponent } from '@shared/ui/input/input';
 import { Loader } from '@shared/ui/loader/loader';
+import type { GoalDeactivatedState } from '../goals';
+
+/** Like `required`, but a field containing only spaces does not count as filled in. */
+function notBlank(control: AbstractControl): ValidationErrors | null {
+  return String(control.value ?? '').trim() ? null : { required: true };
+}
 
 @Component({
   selector: 'app-goal-form',
-  imports: [ReactiveFormsModule, IconPicker, Button, InputComponent, Loader],
+  imports: [ReactiveFormsModule, A11yModule, IconPicker, Button, InputComponent, Loader],
   templateUrl: './goal-form.html',
   styleUrl: './goal-form.scss',
 })
-export class GoalForm implements OnInit {
+export class GoalForm implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly fb = inject(FormBuilder);
   private readonly goalsService = inject(GoalsService);
   private readonly router = inject(Router);
 
-  form = this.fb.nonNullable.group({
-    name: ['', Validators.required],
+  readonly form = this.fb.nonNullable.group({
+    name: ['', notBlank],
     icon: [''],
     color: ['#9EDBC6'],
-    unit: ['', Validators.required],
+    unit: ['', notBlank],
     period: ['daily' as GoalPeriod, Validators.required],
     target_type: ['min' as GoalTargetType, Validators.required],
     target_value: [0, [Validators.required, Validators.min(0)]],
     is_active: [true, Validators.required],
   });
 
-  goalId = this.route.snapshot.paramMap.get('id');
-  isEditMode = !!this.goalId;
-  canBeDeactivated = false;
+  readonly goalId = this.route.snapshot.paramMap.get('id');
+  readonly isEditMode = !!this.goalId;
 
-  isLoading = signal(this.isEditMode);
+  /** True when the goal being edited is currently inactive, so it can be reactivated. */
+  readonly isInactive = signal(false);
+  private goalName = '';
+
+  readonly isLoading = signal(this.isEditMode);
+  readonly loadError = signal(false);
+  readonly isSaving = signal(false);
+  readonly submitError = signal<string | null>(null);
+
+  /** Escape, backdrop or × were used with unsaved edits: ask before throwing them away. */
+  readonly confirmingDiscard = signal(false);
+
+  /** Whatever opened the modal, so focus can go back to it. */
+  private readonly opener = document.activeElement as HTMLElement | null;
+
+  ngOnDestroy(): void {
+    this.opener?.focus?.();
+  }
 
   ngOnInit(): void {
     if (!this.goalId) {
@@ -44,7 +74,8 @@ export class GoalForm implements OnInit {
 
     this.goalsService.getGoal(this.goalId).subscribe({
       next: (goal) => {
-        this.canBeDeactivated = !goal.is_active;
+        this.goalName = goal.name;
+        this.isInactive.set(!goal.is_active);
         this.form.patchValue({
           name: goal.name,
           icon: goal.icon ?? '',
@@ -59,6 +90,7 @@ export class GoalForm implements OnInit {
       },
       error: (error) => {
         console.error('Failed to load goal:', error);
+        this.loadError.set(true);
         this.isLoading.set(false);
       },
     });
@@ -66,20 +98,81 @@ export class GoalForm implements OnInit {
 
   @HostListener('document:keydown.escape')
   onEscape(): void {
+    // The icon picker is an overlay of its own: Escape should only close that first.
+    if (document.querySelector('.icon-picker__popover')) {
+      return;
+    }
+
+    this.requestClose();
+  }
+
+  setIcon(icon: string): void {
+    this.form.controls.icon.setValue(icon);
+    this.form.controls.icon.markAsDirty();
+  }
+
+  /** Close from Escape, the backdrop or ×: asks first only if there is something to lose. */
+  requestClose(): void {
+    if (this.isSaving()) {
+      return;
+    }
+
+    if (this.form.dirty) {
+      this.confirmingDiscard.set(true);
+      return;
+    }
+
     this.close();
   }
 
-  delete(id: string): void {
-    this.goalsService.deleteGoal(id).subscribe({
-      next: (goal) => {
-        console.log('Deleted', goal);
-        this.close();
+  keepEditing(): void {
+    this.confirmingDiscard.set(false);
+  }
+
+  /** Explicit "Discard": the user said what they want, so no second prompt. */
+  discard(): void {
+    if (this.isSaving()) {
+      return;
+    }
+
+    this.close();
+  }
+
+  deactivate(): void {
+    if (!this.goalId || this.isSaving()) {
+      return;
+    }
+
+    this.isSaving.set(true);
+    this.submitError.set(null);
+
+    this.goalsService.deleteGoal(this.goalId).subscribe({
+      next: () => {
+        const state: GoalDeactivatedState = { id: this.goalId!, name: this.goalName };
+
+        this.router.navigate(['/goals'], { state: { goalDeactivated: state } });
+      },
+      error: (error) => {
+        console.error('Failed to deactivate goal:', error);
+        this.isSaving.set(false);
+        this.submitError.set("Couldn't deactivate this goal. Try again.");
       },
     });
   }
 
   submit(): void {
+    if (this.isSaving()) {
+      return;
+    }
+
     if (this.form.invalid) {
+      // Show every missing field at once instead of one per attempt. Trying to submit counts
+      // as having engaged with the field, so the messages are allowed to appear.
+      Object.values(this.form.controls).forEach((control) => {
+        control.markAsDirty();
+        control.markAsTouched();
+        control.updateValueAndValidity();
+      });
       return;
     }
 
@@ -100,18 +193,24 @@ export class GoalForm implements OnInit {
         ? this.goalsService.updateGoal(this.goalId, payload)
         : this.goalsService.createGoal(payload);
 
+    this.isSaving.set(true);
+    this.submitError.set(null);
+
     request$.subscribe({
-      next: (goal) => {
-        console.log(this.isEditMode ? 'Goal updated:' : 'Goal created:', goal);
-        this.close();
-      },
+      next: () => this.close(),
       error: (error) => {
-        console.error('Failed to create goal:', error);
+        console.error('Failed to save goal:', error);
+        this.isSaving.set(false);
+        this.submitError.set(
+          this.isEditMode
+            ? "Couldn't save your changes. Try again."
+            : "Couldn't add this goal. Try again.",
+        );
       },
     });
   }
 
-  close() {
+  close(): void {
     this.router.navigate(['/goals']);
   }
 }
