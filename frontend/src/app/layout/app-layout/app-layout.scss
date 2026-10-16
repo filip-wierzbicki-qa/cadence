@@ -145,6 +145,11 @@ $mobile-bar-height: 72px;
   &__bottom {
     margin-top: auto;
   }
+
+  // Only the tab bar uses the sliding highlight; the desktop sidebar colours the link itself.
+  &__pill {
+    display: none;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -399,7 +404,26 @@ $mobile-bar-height: 72px;
       @include material;
     }
 
+    // Slides between tabs; positioned and sized from script to match the active one.
+    &__pill {
+      position: absolute;
+      z-index: 0;
+
+      display: block;
+
+      border-radius: var(--radius-control);
+
+      background: var(--color-surface-active);
+
+      opacity: 0;
+      pointer-events: none;
+    }
+
     &__link {
+      // Sits above the highlight.
+      position: relative;
+      z-index: 1;
+
       flex: 1;
       flex-direction: column;
       justify-content: center;
@@ -418,8 +442,9 @@ $mobile-bar-height: 72px;
         white-space: nowrap;
       }
 
+      // The highlight is drawn by `.sidebar__pill`.
       &.active {
-        background: var(--color-surface-active);
+        background: transparent;
       }
     }
 

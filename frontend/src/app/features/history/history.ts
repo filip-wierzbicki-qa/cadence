@@ -244,9 +244,12 @@ export class History {
 
     // Jump to the final scroll position first; the days then animate into place from where
     // they were, so a scrolling strip and a non-scrolling one share the same motion.
-    strip
-      .querySelector('.selectedDate')
-      ?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+    // Scroll the strip itself: scrollIntoView would also scroll the page vertically.
+    const selectedSlot = strip.querySelector<HTMLElement>('.selectedDate');
+
+    if (selectedSlot) {
+      strip.scrollLeft = selectedSlot.offsetLeft - (strip.clientWidth - selectedSlot.offsetWidth) / 2;
+    }
 
     const current = this.measurePicker();
 
