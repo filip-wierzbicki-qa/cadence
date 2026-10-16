@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_api_key: str
 
+    supabase_service_role_key: str
+    supabase_avatar_bucket: str = "avatars"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
