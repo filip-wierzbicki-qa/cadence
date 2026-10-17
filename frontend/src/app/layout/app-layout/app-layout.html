@@ -81,8 +81,15 @@
           [attr.aria-expanded]="isUserMenuOpen()"
           (click)="toggleUserMenu()"
         >
-          <div class="user-avatar" aria-hidden="true">
+          <!-- <div class="user-avatar" aria-hidden="true">
             {{ currentUser()?.profileInitial }}
+          </div> -->
+          <div class="user-avatar" aria-hidden="true">
+            @if (currentUser()?.avatar_url; as avatarUrl) {
+              <img class="user-avatar__image" [src]="avatarUrl" alt="" />
+            } @else {
+              {{ currentUser()?.profileInitial }}
+            }
           </div>
 
           <div class="user-card__details">

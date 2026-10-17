@@ -304,6 +304,8 @@ $mobile-bar-height: 72px;
   align-items: center;
   justify-content: center;
 
+  overflow: hidden;
+
   width: 42px;
   aspect-ratio: 1;
 
@@ -313,6 +315,15 @@ $mobile-bar-height: 72px;
   color: var(--color-button-text);
 
   font-weight: var(--font-weight-bold);
+}
+
+.user-avatar__image {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
 }
 
 .user-name,

@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { LoginRequest, LoginResponse, UserProfile } from '@models/loginModel';
@@ -17,10 +17,6 @@ export class AuthService {
 
   readonly currentUser = signal<UserProfile | null>(null);
 
-  /**
-   * Signs in and loads the profile as part of the same step, so whoever is waiting on this
-   * observable (the sign-in button) stays busy until the next screen has everything it needs.
-   */
   login(credentials: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiAuthUrl}/login`, credentials).pipe(
       tap((response) => this.saveSession(response)),
@@ -28,7 +24,6 @@ export class AuthService {
         this.getCurrentUser().pipe(
           map(() => response),
           catchError((error) => {
-            // Half signed in is worse than not signed in.
             this.logout();
             return throwError(() => error);
           }),
@@ -62,10 +57,12 @@ export class AuthService {
   }
 
   getCurrentUser(): Observable<UserProfile> {
-    return this.http.get<UserProfile>(`${this.apiMeUrl}`).pipe(
+    return this.http.get<UserProfile>(this.apiMeUrl).pipe(
       tap((user) => {
-        this.currentUser.set(user);
-        this.currentUser()!.profileInitial = user.display_name?.charAt(0).toUpperCase() ?? '?';
+        this.currentUser.set({
+          ...user,
+          profileInitial: user.display_name?.charAt(0).toUpperCase() ?? '?',
+        });
       }),
     );
   }

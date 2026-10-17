@@ -1,0 +1,23 @@
+<dialog
+  #dialog
+  class="modal"
+  aria-labelledby="modal-title"
+  (close)="onClose()"
+  (click)="onBackdropClick($event)"
+>
+  <div class="modal__content">
+    <header class="modal__header">
+      <h2 id="modal-title" class="modal__title">
+        {{ title() }}
+      </h2>
+
+      <button type="button" class="modal__close" aria-label="Close dialog" (click)="close()">
+        &times;
+      </button>
+    </header>
+
+    <div class="modal__body">
+      <ng-content />
+    </div>
+  </div>
+</dialog>

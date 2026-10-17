@@ -6,7 +6,24 @@
 
     @if (currentUser(); as user) {
       <div class="profile">
-        <div class="profile__avatar" aria-hidden="true">{{ user.profileInitial }}</div>
+        <div class="profile__avatar-wrapper">
+          <div class="profile__avatar" aria-hidden="true">
+            @if (user.avatar_url) {
+              <img class="profile__avatar-image" [src]="user.avatar_url" alt="" />
+            } @else {
+              {{ user.profileInitial }}
+            }
+          </div>
+
+          <button
+            type="button"
+            class="profile__edit"
+            aria-label="Edit profile picture"
+            (click)="openAvatarModal()"
+          >
+            <svg lucidePencil aria-hidden="true"></svg>
+          </button>
+        </div>
 
         <div class="profile__details">
           <span class="profile__name">{{ user.display_name || 'User' }}</span>
@@ -44,3 +61,6 @@
     <p class="settings-section__hint">These ranges are fixed for now.</p>
   </section>
 </div>
+<app-modal title="Profile picture" [open]="isAvatarModalOpen()" (closed)="closeAvatarModal()">
+  <p>Avatar management will be available here.</p>
+</app-modal>
