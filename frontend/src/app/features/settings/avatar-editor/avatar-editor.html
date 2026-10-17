@@ -1,0 +1,52 @@
+<app-modal title="Profile picture" [open]="open()" (closed)="onClosed()">
+  <div class="avatar-editor">
+    <div class="avatar-editor__preview" [class.avatar-editor__preview--initial]="!shownUrl()">
+      @if (shownUrl(); as url) {
+        <!-- Keyed by url so each new picture fades in instead of swapping abruptly. -->
+        @for (src of [url]; track src) {
+          <img class="avatar-editor__image" [src]="src" alt="Profile picture preview" />
+        }
+      } @else {
+        <span aria-hidden="true">{{ user()?.profileInitial }}</span>
+      }
+    </div>
+
+    <p class="avatar-editor__hint">JPG, PNG or WebP · Maximum 2 MB</p>
+
+    <input
+      #fileInput
+      type="file"
+      class="avatar-editor__file-input"
+      accept="image/jpeg,image/png,image/webp"
+      tabindex="-1"
+      [disabled]="saving()"
+      (change)="onFileChosen($event)"
+    />
+
+    @if (error(); as message) {
+      <p class="avatar-editor__error" role="alert">{{ message }}</p>
+    }
+
+    <div class="avatar-editor__actions">
+      <div class="avatar-editor__main-actions">
+        <app-button variant="secondary" [disabled]="saving()" (click)="onClosed()">
+          Cancel
+        </app-button>
+
+        @if (selectedFile()) {
+          <app-button variant="primary" [loading]="saving()" (click)="save()">Update</app-button>
+        } @else {
+          <app-button variant="primary" [disabled]="saving()" (click)="fileInput.click()">
+            {{ hasSavedAvatar() ? 'Change photo' : 'Upload photo' }}
+          </app-button>
+        }
+      </div>
+
+      @if (!selectedFile() && hasSavedAvatar()) {
+        <app-button variant="danger" [loading]="saving()" (click)="remove()">
+          Remove photo
+        </app-button>
+      }
+    </div>
+  </div>
+</app-modal>

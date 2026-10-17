@@ -330,7 +330,13 @@
       border-radius: inherit;
     }
 
-    // The card draws the focus ring instead.
+    // The card draws the focus ring and the press feedback. A transform here would make the
+    // link the containing block of the stretched ::after, shrinking the hit area to the pill
+    // the moment it is pressed, so the release would miss it and the click be lost.
+    &:active {
+      transform: none;
+    }
+
     &:focus-visible {
       outline: none;
     }

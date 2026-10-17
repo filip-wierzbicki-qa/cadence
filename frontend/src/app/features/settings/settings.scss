@@ -103,7 +103,7 @@
 
     transition:
       background 150ms ease,
-      transform 150ms ease;
+      transform 150ms ease-out;
 
     svg {
       width: 13px;
@@ -115,6 +115,11 @@
       transform: scale(1.08);
     }
 
+    // Feedback on press, not on release.
+    &:active {
+      transform: scale(0.94);
+    }
+
     &:focus-visible {
       outline: 2px solid var(--color-primary);
       outline-offset: 2px;
@@ -122,6 +127,10 @@
   }
 
   &__avatar {
+    position: relative;
+    // Keep the image's z-index local so it can't climb over the edit button.
+    isolation: isolate;
+
     display: grid;
     flex: none;
     place-items: center;
@@ -131,20 +140,42 @@
 
     border-radius: 50%;
 
-    background: var(--color-primary);
+    // Neutral until we know there is no photo: green only backs the initial,
+    // so it never flashes (or fringes the edge) while an image loads.
+    background: var(--color-surface-hover);
     color: var(--color-button-text);
 
     font-size: var(--font-size-xl);
     font-weight: var(--font-weight-bold);
+
+    &--initial {
+      background: var(--color-primary);
+    }
+  }
+
+  &__avatar-skeleton {
+    position: absolute;
+    inset: 0;
+
+    background: var(--color-surface-hover);
   }
 
   &__avatar-image {
-    display: block;
+    position: relative;
+    z-index: 1;
 
+    display: block;
     width: 100%;
     height: 100%;
 
     object-fit: cover;
+    opacity: 0;
+
+    transition: opacity 200ms ease-out;
+
+    &--loaded {
+      opacity: 1;
+    }
   }
 
   &__details {
@@ -219,5 +250,12 @@
     color: var(--color-text-secondary);
 
     font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile__avatar-image,
+  .profile__edit {
+    transition: none;
   }
 }

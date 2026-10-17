@@ -1,0 +1,92 @@
+.avatar-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+
+  &__preview {
+    position: relative;
+
+    display: grid;
+    place-items: center;
+
+    width: 8rem;
+    aspect-ratio: 1;
+
+    overflow: hidden;
+    border-radius: 50%;
+
+    background: var(--color-surface-hover);
+    color: var(--color-button-text);
+
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+
+    &--initial {
+      background: var(--color-primary);
+    }
+  }
+
+  &__image {
+    display: block;
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    animation: avatar-editor-fade-in 200ms ease-out;
+  }
+
+  &__actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+
+    width: 100%;
+    max-width: 20rem;
+  }
+
+  &__main-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  // Visually hidden, but kept out of the tab order: the buttons drive it.
+  &__file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__hint,
+  &__error {
+    margin: 0;
+
+    font-size: var(--font-size-sm);
+    text-align: center;
+  }
+
+  &__hint {
+    color: var(--color-text-secondary);
+  }
+
+  &__error {
+    color: var(--color-danger);
+  }
+}
+
+@keyframes avatar-editor-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .avatar-editor__image {
+    animation: none;
+  }
+}

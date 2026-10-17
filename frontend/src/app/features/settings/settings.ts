@@ -1,33 +1,35 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+
+import { LucidePencil } from '@lucide/angular';
 
 import { AuthService } from '@core/services/auth.service';
 import { scoreBandRanges } from '@shared/utils/score-band';
 
-import { signal } from '@angular/core';
-import { LucidePencil } from '@lucide/angular';
-
-import { Modal } from '@shared/ui/modal/modal';
+import { AvatarEditor } from './avatar-editor/avatar-editor';
 
 @Component({
   selector: 'app-settings',
-  imports: [Modal, LucidePencil],
+  imports: [AvatarEditor, LucidePencil],
   templateUrl: './settings.html',
   styleUrl: './settings.scss',
 })
 export class Settings {
-  readonly isAvatarModalOpen = signal(false);
-
-  private readonly authService = inject(AuthService);
-
-  readonly currentUser = this.authService.currentUser;
-
+  readonly currentUser = inject(AuthService).currentUser;
   readonly thresholds = scoreBandRanges();
 
-  openAvatarModal(): void {
-    this.isAvatarModalOpen.set(true);
+  readonly isAvatarEditorOpen = signal(false);
+
+  // Remember which url finished (or failed) loading, so a new avatar starts from the
+  // skeleton again without an effect resetting a flag.
+  readonly loadedAvatarUrl = signal<string | null>(null);
+  readonly failedAvatarUrl = signal<string | null>(null);
+
+  /** The url to render, or null when there is none or it failed, so we fall back to the initial. */
+  hasAvatarImage(url: string | null | undefined): string | null {
+    return url && url !== this.failedAvatarUrl() ? url : null;
   }
 
-  closeAvatarModal(): void {
-    this.isAvatarModalOpen.set(false);
+  isAvatarLoaded(url: string): boolean {
+    return this.loadedAvatarUrl() === url;
   }
 }

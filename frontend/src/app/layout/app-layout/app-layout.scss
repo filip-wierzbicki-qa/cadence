@@ -45,6 +45,10 @@ $mobile-bar-height: 72px;
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
+  // `fixed` makes this its own stacking context, so without an explicit level it paints
+  // in DOM order and later positioned or animated content (cards, skeletons) covers the
+  // tab bar. Everything inside is ordered locally; this puts the whole chrome on top.
+  z-index: 20;
 
   display: flex;
   flex-direction: column;
