@@ -245,8 +245,23 @@ def test_daily_progress_with_weekly_max_penalty() -> None:
             assert payload["date"] == today_string
             assert payload["timezone"] == "Europe/Warsaw"
             assert payload["is_final"] is False
-            assert payload["daily_score"] == 50.0
-            assert payload["scored_components_count"] == 4
+
+            # The account may hold other goals, so check only this test's components.
+            test_components = [
+                component
+                for component in payload["components"]
+                if component["name"].startswith(f"[TEST {unique_suffix}]")
+                and component["included_in_daily_score"]
+            ]
+            assert len(test_components) == 4
+            assert (
+                round(
+                    sum(component["score"] for component in test_components)
+                    / len(test_components),
+                    2,
+                )
+                == 50.0
+            )
 
             steps_component = find_item_by_name(
                 payload["components"],

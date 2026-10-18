@@ -275,6 +275,15 @@ def test_weekly_progress_is_final_after_simulated_week(
                 2,
             )
 
+            # With a single day left in the week (e.g. a Sunday run) the daily
+            # goals score 100 / 0 instead of a partial result.
+            def expected_status(score: float) -> str:
+                if score == 100:
+                    return "achieved"
+                if score == 0:
+                    return "missed"
+                return "partially_achieved"
+
             expected_weekly_score = round(
                 (
                     expected_steps_score
@@ -286,7 +295,18 @@ def test_weekly_progress_is_final_after_simulated_week(
                 2,
             )
 
-            assert payload["weekly_score"] == expected_weekly_score
+            # The account may hold other goals, so check only this test's items.
+            test_items = [
+                item
+                for item in payload["items"]
+                if item["name"].startswith(f"[TEST {suffix}]")
+                and item["included_in_weekly_score"]
+            ]
+            assert len(test_items) == 4
+            assert (
+                round(sum(item["score"] for item in test_items) / len(test_items), 2)
+                == expected_weekly_score
+            )
 
             steps_item = find_item_by_name(
                 payload["items"],
@@ -296,7 +316,7 @@ def test_weekly_progress_is_final_after_simulated_week(
             assert steps_item["days_counted"] == expected_days_counted
             assert steps_item["daily_average_score"] == expected_steps_score
             assert steps_item["score"] == expected_steps_score
-            assert steps_item["status"] == "partially_achieved"
+            assert steps_item["status"] == expected_status(expected_steps_score)
             assert steps_item["included_in_weekly_score"] is True
 
             calories_item = find_item_by_name(
@@ -307,7 +327,7 @@ def test_weekly_progress_is_final_after_simulated_week(
             assert calories_item["days_counted"] == expected_days_counted
             assert calories_item["daily_average_score"] == expected_calories_score
             assert calories_item["score"] == expected_calories_score
-            assert calories_item["status"] == "partially_achieved"
+            assert calories_item["status"] == expected_status(expected_calories_score)
             assert calories_item["included_in_weekly_score"] is True
 
             workouts_item = find_item_by_name(
