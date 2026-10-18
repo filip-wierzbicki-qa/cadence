@@ -31,7 +31,7 @@ from app.services.progress_service import (
     calculate_progress_range,
     calculate_weekly_progress,
     get_goal_entries_for_date,
-    get_warsaw_today,
+    get_user_today,
 )
 
 router = APIRouter(
@@ -138,7 +138,7 @@ async def get_daily_progress(
         progress = await calculate_daily_progress(
             session=session,
             owner_id=current_user.id,
-            reference_date=progress_date or get_warsaw_today(),
+            reference_date=progress_date or get_user_today(),
         )
     except ValueError as error:
         raise HTTPException(
@@ -165,7 +165,7 @@ async def get_weekly_progress(
         progress = await calculate_weekly_progress(
             session=session,
             owner_id=current_user.id,
-            reference_date=progress_date or get_warsaw_today(),
+            reference_date=progress_date or get_user_today(),
         )
     except ValueError as error:
         raise HTTPException(

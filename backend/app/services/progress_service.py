@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any
 from uuid import UUID
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.timezone import get_request_timezone
 from app.models.enums import (
     ProgressStatus,
 )
@@ -26,10 +26,6 @@ from app.services.progress_rules import (
     causes_period_max_daily_penalty,
 )
 
-WARSAW_TIMEZONE = ZoneInfo("Europe/Warsaw")
-TIMEZONE_NAME = "Europe/Warsaw"
-
-
 @dataclass
 class GoalDayState:
     goal: Goal
@@ -39,7 +35,7 @@ class GoalDayState:
     period_current_value: float
 
 
-def get_warsaw_today() -> date:
+def get_user_today() -> date:
     test_today = os.getenv("CADENCE_TEST_TODAY")
     if test_today:
         try:
@@ -48,7 +44,7 @@ def get_warsaw_today() -> date:
             raise RuntimeError(
                 "CADENCE_TEST_TODAY must use YYYY-MM-DD format."
             ) from error
-    return datetime.now(WARSAW_TIMEZONE).date()
+    return datetime.now(get_request_timezone()).date()
 
 
 def get_period_bounds(
@@ -158,7 +154,7 @@ def get_goal_created_date(goal: Goal) -> date:
     if created_at.tzinfo is None:
         return created_at.date()
 
-    return created_at.astimezone(WARSAW_TIMEZONE).date()
+    return created_at.astimezone(get_request_timezone()).date()
 
 
 def calculate_period_current_value(
@@ -264,7 +260,7 @@ async def calculate_daily_progress(
     owner_id: UUID,
     reference_date: date,
 ) -> dict[str, Any]:
-    today = get_warsaw_today()
+    today = get_user_today()
 
     if reference_date > today:
         raise ValueError("date cannot be in the future")
@@ -292,7 +288,7 @@ def build_daily_progress(
     if not goal_states:
         return {
             "date": reference_date,
-            "timezone": TIMEZONE_NAME,
+            "timezone": get_request_timezone().key,
             "daily_score": None,
             "is_final": is_day_final,
             "scored_components_count": 0,
@@ -456,7 +452,7 @@ def build_daily_progress(
 
     return {
         "date": reference_date,
-        "timezone": TIMEZONE_NAME,
+        "timezone": get_request_timezone().key,
         "daily_score": daily_score,
         "is_final": is_day_final,
         "scored_components_count": len(component_scores),
@@ -547,7 +543,7 @@ async def calculate_weekly_progress(
     owner_id: UUID,
     reference_date: date,
 ) -> dict[str, Any]:
-    today = get_warsaw_today()
+    today = get_user_today()
 
     if reference_date > today:
         raise ValueError("date cannot be in the future")
@@ -624,7 +620,7 @@ def build_weekly_progress(
     if not applicable_goals:
         return {
             "date": reference_date,
-            "timezone": TIMEZONE_NAME,
+            "timezone": get_request_timezone().key,
             "period_start": week_start,
             "period_end": week_end,
             "is_final": is_week_final,
@@ -790,7 +786,7 @@ def build_weekly_progress(
 
     return {
         "date": reference_date,
-        "timezone": TIMEZONE_NAME,
+        "timezone": get_request_timezone().key,
         "period_start": week_start,
         "period_end": week_end,
         "is_final": is_week_final,
@@ -816,7 +812,7 @@ async def calculate_progress_range(
     Robi to w dwóch zapytaniach do bazy (cele + wpisy dla całego
     potrzebnego zakresu), zamiast N zapytań per dzień.
     """
-    today = get_warsaw_today()
+    today = get_user_today()
 
     if date_from > date_to:
         raise ValueError("date_from cannot be after date_to")

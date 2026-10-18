@@ -129,6 +129,7 @@ def test_weekly_progress_for_current_week() -> None:
 
     headers = {
         "Authorization": f"Bearer {TEST_TOKEN}",
+        "X-Timezone": "Europe/Warsaw",
     }
 
     created_goal_ids: list[str] = []

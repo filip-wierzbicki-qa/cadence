@@ -125,6 +125,7 @@ def test_daily_progress_with_weekly_max_penalty() -> None:
 
     headers = {
         "Authorization": f"Bearer {TEST_TOKEN}",
+        "X-Timezone": "Europe/Warsaw",
     }
 
     created_goal_ids: list[str] = []

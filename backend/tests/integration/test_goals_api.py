@@ -85,6 +85,7 @@ def test_reorder_daily_goals() -> None:
 
     headers = {
         "Authorization": f"Bearer {TEST_TOKEN}",
+        "X-Timezone": "Europe/Warsaw",
     }
 
     created_goal_ids: list[str] = []
@@ -163,6 +164,7 @@ def test_cannot_reorder_goals_from_different_periods() -> None:
 
     headers = {
         "Authorization": f"Bearer {TEST_TOKEN}",
+        "X-Timezone": "Europe/Warsaw",
     }
 
     created_goal_ids: list[str] = []
@@ -213,6 +215,7 @@ def test_reorder_rejects_duplicate_goal_ids() -> None:
 
     headers = {
         "Authorization": f"Bearer {TEST_TOKEN}",
+        "X-Timezone": "Europe/Warsaw",
     }
 
     created_goal_ids: list[str] = []
@@ -255,6 +258,7 @@ def test_new_goals_are_appended_to_period() -> None:
 
     headers = {
         "Authorization": f"Bearer {TEST_TOKEN}",
+        "X-Timezone": "Europe/Warsaw",
     }
 
     with httpx.Client(

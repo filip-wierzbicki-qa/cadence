@@ -1,12 +1,13 @@
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import router as api_v1_router
 from app.core.config import get_settings
 from app.core.database import get_db_session
+from app.core.timezone import TIMEZONE_HEADER, set_request_timezone
 
 
 settings = get_settings()
@@ -23,6 +24,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def timezone_middleware(request: Request, call_next):
+    set_request_timezone(request.headers.get(TIMEZONE_HEADER))
+    return await call_next(request)
 
 
 @app.get("/", tags=["System"])

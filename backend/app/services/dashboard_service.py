@@ -4,13 +4,13 @@ from uuid import UUID
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.timezone import get_request_timezone
 from app.models.goal import Goal
 from app.schemas.dashboard import DashboardResponse
 from app.services.progress_service import (
-    WARSAW_TIMEZONE,
     calculate_daily_progress,
     calculate_progress_range,
-    get_warsaw_today,
+    get_user_today,
 )
 
 
@@ -18,7 +18,7 @@ async def get_dashboard(
     session: AsyncSession,
     owner_id: UUID,
 ) -> DashboardResponse:
-    today = get_warsaw_today()
+    today = get_user_today()
     week_start = today - timedelta(days=today.weekday())
     weekly_scores: list[float] = []
     weekly_score: float | None = None
@@ -87,7 +87,7 @@ async def get_first_goal_date(
     if created_at.tzinfo is None:
         return created_at.date()
 
-    return created_at.astimezone(WARSAW_TIMEZONE).date()
+    return created_at.astimezone(get_request_timezone()).date()
 
 
 def calculate_streaks(

@@ -138,6 +138,7 @@ def test_weekly_progress_is_final_after_simulated_week(
     """
     headers = {
         "Authorization": f"Bearer {TEST_TOKEN}",
+        "X-Timezone": "Europe/Warsaw",
     }
 
     suffix = uuid.uuid4().hex[:8]
