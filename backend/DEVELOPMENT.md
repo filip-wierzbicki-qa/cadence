@@ -239,6 +239,18 @@ python -m uvicorn app.main:app --reload # old-school, wymaga .venv
 uv run fastapi dev app/main.py # nowsza metoda
 ```
 
+### Lokalnie vs. z telefonu (to samo Wi-Fi)
+
+Frontend woła API pod tym samym hostem, z którego otwarto stronę, więc nie trzeba nic przestawiać.
+
+| Tryb | Backend | Frontend | Adres |
+|------|---------|----------|-------|
+| Lokalnie | `uv run fastapi dev app/main.py` | `npm start` | `http://localhost:4200` |
+| Telefon | `uv run fastapi dev app/main.py --host 0.0.0.0` | `npm run start:mobile` | `http://<IP-maca>:4200` |
+
+IP Maca: `ipconfig getifaddr en0`. CORS w trybie `development` przepuszcza `localhost` oraz adresy sieci
+prywatnych (192.168.x.x, 10.x.x.x, 172.16-31.x.x) na porcie 4200.
+
 ---
 
 ## Zasada

@@ -12,6 +12,11 @@ from app.core.timezone import TIMEZONE_HEADER, set_request_timezone
 
 settings = get_settings()
 
+LAN_ORIGIN_REGEX = (
+    r"^http://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}"
+    r"|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}):4200$"
+)
+
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
@@ -19,7 +24,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_url, "http://192.168.1.114:4200"],
+    allow_origins=[settings.frontend_url],
+    # In development also accept the dev server opened by LAN address (testing from a phone).
+    allow_origin_regex=LAN_ORIGIN_REGEX if settings.environment == "development" else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
