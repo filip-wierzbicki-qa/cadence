@@ -19,6 +19,16 @@ const GOAL = {
 } as GoalResponse;
 
 describe('GoalForm', () => {
+  // jsdom has no <dialog> behaviour.
+  beforeAll(() => {
+    HTMLDialogElement.prototype.showModal ??= function (this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    };
+  });
+
   let fixture: ComponentFixture<GoalForm>;
   let component: GoalForm;
   let http: HttpTestingController;
@@ -53,35 +63,12 @@ describe('GoalForm', () => {
     }
   }
 
-  it('closes immediately from Escape when nothing was edited', async () => {
-    await setup(null);
-
-    component.onEscape();
-
-    expect(navigate).toHaveBeenCalledWith(['/goals']);
-    expect(component.confirmingDiscard()).toBe(false);
-  });
-
-  it('asks before closing from Escape when there are unsaved edits', async () => {
+  it('closes immediately, even with unsaved edits', async () => {
     await setup(null);
     component.form.controls.name.setValue('Read');
     component.form.controls.name.markAsDirty();
 
-    component.onEscape();
-    fixture.detectChanges();
-
-    expect(navigate).not.toHaveBeenCalled();
-    expect(el().querySelector('.goal-form__discard')).toBeTruthy();
-
-    component.keepEditing();
-    expect(component.confirmingDiscard()).toBe(false);
-  });
-
-  it('closes straight away from the Discard button, even with edits', async () => {
-    await setup(null);
-    component.form.controls.name.markAsDirty();
-
-    component.discard();
+    component.requestClose();
 
     expect(navigate).toHaveBeenCalledWith(['/goals']);
   });

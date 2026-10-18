@@ -1,5 +1,4 @@
-import { Component, HostListener, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { A11yModule } from '@angular/cdk/a11y';
+import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import {
   AbstractControl,
   FormBuilder,
@@ -15,6 +14,8 @@ import { IconPicker } from '@shared/components/icon-picker/icon-picker';
 import { Button } from '@shared/ui/button/button';
 import { InputComponent } from '@shared/ui/input/input';
 import { Loader } from '@shared/ui/loader/loader';
+import { Modal } from '@shared/ui/modal/modal';
+import { Select, SelectOption } from '@shared/ui/select/select';
 import type { GoalDeactivatedState } from '../goals';
 
 /** Like `required`, but a field containing only spaces does not count as filled in. */
@@ -24,7 +25,7 @@ function notBlank(control: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-goal-form',
-  imports: [ReactiveFormsModule, A11yModule, IconPicker, Button, InputComponent, Loader],
+  imports: [ReactiveFormsModule, IconPicker, Button, InputComponent, Loader, Modal, Select],
   templateUrl: './goal-form.html',
   styleUrl: './goal-form.scss',
 })
@@ -45,6 +46,11 @@ export class GoalForm implements OnInit, OnDestroy {
     is_active: [true, Validators.required],
   });
 
+  readonly targetTypeOptions: SelectOption<GoalTargetType>[] = [
+    { value: 'min', label: 'At least' },
+    { value: 'max', label: 'At most' },
+  ];
+
   readonly goalId = this.route.snapshot.paramMap.get('id');
   readonly isEditMode = !!this.goalId;
 
@@ -56,9 +62,6 @@ export class GoalForm implements OnInit, OnDestroy {
   readonly loadError = signal(false);
   readonly isSaving = signal(false);
   readonly submitError = signal<string | null>(null);
-
-  /** Escape, backdrop or × were used with unsaved edits: ask before throwing them away. */
-  readonly confirmingDiscard = signal(false);
 
   /** Whatever opened the modal, so focus can go back to it. */
   private readonly opener = document.activeElement as HTMLElement | null;
@@ -96,41 +99,18 @@ export class GoalForm implements OnInit, OnDestroy {
     });
   }
 
-  @HostListener('document:keydown.escape')
-  onEscape(): void {
-    // The icon picker is an overlay of its own: Escape should only close that first.
-    if (document.querySelector('.icon-picker__popover')) {
-      return;
-    }
-
-    this.requestClose();
-  }
-
   setIcon(icon: string): void {
     this.form.controls.icon.setValue(icon);
     this.form.controls.icon.markAsDirty();
   }
 
-  /** Close from Escape, the backdrop or ×: asks first only if there is something to lose. */
+  /** Close from Escape, the backdrop, × or Discard. */
   requestClose(): void {
-    if (this.isSaving()) {
+    // The icon picker and dropdowns are overlays of their own: Escape should only close those first.
+    if (document.querySelector('.icon-picker__popover, .select__list')) {
       return;
     }
 
-    if (this.form.dirty) {
-      this.confirmingDiscard.set(true);
-      return;
-    }
-
-    this.close();
-  }
-
-  keepEditing(): void {
-    this.confirmingDiscard.set(false);
-  }
-
-  /** Explicit "Discard": the user said what they want, so no second prompt. */
-  discard(): void {
     if (this.isSaving()) {
       return;
     }

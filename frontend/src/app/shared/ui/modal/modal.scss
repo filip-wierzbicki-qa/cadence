@@ -11,6 +11,10 @@
 
   box-shadow: 0 24px 80px rgb(0 0 0 / 25%);
 
+  &--lg {
+    width: min(32rem, calc(100% - 2rem));
+  }
+
   &::backdrop {
     background: rgb(0 0 0 / 55%);
     backdrop-filter: blur(4px);

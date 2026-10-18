@@ -403,7 +403,7 @@ $mobile-bar-height: 72px;
     &__nav {
       position: fixed;
       right: var(--space-2);
-      bottom: max(var(--space-2), env(safe-area-inset-bottom));
+      bottom: max(var(--space-5), env(safe-area-inset-bottom));
       left: var(--space-2);
       z-index: 20;
 

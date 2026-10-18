@@ -32,6 +32,8 @@
 
     // A horizontally scrollable day picker: twelve days never fit in a narrow column.
     &__bottom {
+      --fade-size: 2rem;
+
       position: relative;
 
       display: flex;
@@ -45,6 +47,28 @@
       overscroll-behavior-x: contain;
       scroll-snap-type: x proximity;
       scrollbar-width: none;
+
+      // Fade the edge that still has days behind it, so a cut-off day hints at the scroll. The
+      // fades only exist while the strip actually overflows (scroll-driven, so no JS).
+      mask-image: linear-gradient(
+        to right,
+        transparent,
+        #000 var(--fade-start),
+        #000 calc(100% - var(--fade-end)),
+        transparent
+      );
+      animation:
+        history-fade-start linear both,
+        history-fade-end linear both;
+      animation-timeline: scroll(self inline);
+      animation-range:
+        0 var(--fade-size),
+        calc(100% - var(--fade-size)) 100%;
+
+      // Without scroll-driven animations there is no fade, so show a slim scrollbar instead.
+      @supports not (animation-timeline: scroll()) {
+        scrollbar-width: thin;
+      }
 
       button {
         flex: none;
@@ -282,5 +306,37 @@
     &__title {
       font-size: var(--font-size-2xl);
     }
+  }
+}
+
+@property --fade-start {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-end {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@keyframes history-fade-start {
+  from {
+    --fade-start: 0px;
+  }
+
+  to {
+    --fade-start: 2rem;
+  }
+}
+
+@keyframes history-fade-end {
+  from {
+    --fade-end: 2rem;
+  }
+
+  to {
+    --fade-end: 0px;
   }
 }

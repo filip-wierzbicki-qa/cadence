@@ -1,8 +1,10 @@
 <dialog
   #dialog
   class="modal"
+  [class.modal--lg]="size() === 'lg'"
   aria-labelledby="modal-title"
   (close)="onClose()"
+  (cancel)="onCancel($event)"
   (click)="onBackdropClick($event)"
 >
   <div class="modal__content">
