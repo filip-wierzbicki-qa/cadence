@@ -1,6 +1,16 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
-import { catchError, map, Observable, of, switchMap, tap, throwError } from 'rxjs';
+import {
+  catchError,
+  finalize,
+  map,
+  Observable,
+  of,
+  shareReplay,
+  switchMap,
+  tap,
+  throwError,
+} from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { LoginRequest, LoginResponse, UserProfile } from '@models/loginModel';
 import { RegisterRequest, RegisterResponse } from '@models/registerModel';
@@ -14,6 +24,8 @@ export class AuthService {
   private readonly apiMeUrl = `${environment.apiUrl}/me`;
   private readonly accessTokenKey = 'access_token';
   private readonly refreshTokenKey = 'refresh_token';
+
+  private refreshRequest$: Observable<LoginResponse> | null = null;
 
   readonly currentUser = signal<UserProfile | null>(null);
 
@@ -38,6 +50,32 @@ export class AuthService {
 
   getAccessToken(): string | null {
     return localStorage.getItem(this.accessTokenKey);
+  }
+
+  refreshSession(): Observable<LoginResponse> {
+    if (this.refreshRequest$) {
+      return this.refreshRequest$;
+    }
+
+    const refreshToken = localStorage.getItem(this.refreshTokenKey);
+
+    if (!refreshToken) {
+      return throwError(() => new Error('No refresh token available'));
+    }
+
+    this.refreshRequest$ = this.http
+      .post<LoginResponse>(`${this.apiAuthUrl}/refresh`, {
+        refresh_token: refreshToken,
+      })
+      .pipe(
+        tap((response) => this.saveSession(response)),
+        finalize(() => {
+          this.refreshRequest$ = null;
+        }),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+
+    return this.refreshRequest$;
   }
 
   isLoggedIn(): boolean {
@@ -67,25 +105,29 @@ export class AuthService {
     );
   }
 
-  initializeSession() {
-    const token = this.getAccessToken();
-
-    if (!token) {
-      return of(false);
-    }
-
-    // The profile is already loaded (for example by `login`), so there is nothing to wait for.
+  initializeSession(): Observable<boolean> {
     if (this.currentUser()) {
       return of(true);
     }
 
-    return this.getCurrentUser().pipe(
-      map(() => true),
-      catchError(() => {
-        this.logout();
-        return of(false);
-      }),
-    );
+    if (!this.getAccessToken() && !localStorage.getItem(this.refreshTokenKey)) {
+      return of(false);
+    }
+
+    const loadProfile = () =>
+      this.getCurrentUser().pipe(
+        map(() => true),
+        catchError(() => of(false)),
+      );
+
+    if (!this.getAccessToken()) {
+      return this.refreshSession().pipe(
+        switchMap(loadProfile),
+        catchError(() => of(false)),
+      );
+    }
+
+    return loadProfile();
   }
 
   forgotPassword(request: ForgotPasswordRequest): Observable<MessageResponse> {

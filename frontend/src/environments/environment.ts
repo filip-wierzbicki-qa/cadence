@@ -1,4 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://192.168.1.114:8000/api/v1',
+  // Same host the page was opened from, so it works on localhost and from a phone on the LAN.
+  apiUrl: `http://${window.location.hostname}:8000/api/v1`,
 };
