@@ -1,0 +1,85 @@
+<aside class="assistant-panel" aria-label="AI Assistant">
+  <header class="assistant-panel__header">
+    <div class="assistant-panel__icon">
+      <svg lucideBot aria-hidden="true"></svg>
+    </div>
+
+    <div class="assistant-panel__heading">
+      <h2>Assistant</h2>
+      <p>Log activities in plain words</p>
+    </div>
+
+    <button
+      type="button"
+      class="assistant-panel__close"
+      aria-label="Close assistant"
+      (click)="closeAssistant.emit()"
+    >
+      <svg lucideX aria-hidden="true"></svg>
+    </button>
+  </header>
+
+  <div #messagesContainer class="assistant-panel__messages">
+    @if (messages().length === 0) {
+      <app-assistant-message [message]="welcomeMessage" />
+    }
+
+    @for (message of messages(); track message.id) {
+      <app-assistant-message [message]="message" />
+    }
+    @if (isLoading()) {
+      <div class="assistant-panel__typing" role="status" aria-label="Assistant is typing">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    }
+    @if (errorMessage()) {
+      <div class="assistant-panel__error" role="alert">
+        <p>{{ errorMessage() }}</p>
+
+        <button type="button" (click)="retryMessage()">Try again</button>
+      </div>
+    }
+  </div>
+
+  <footer class="assistant-panel__footer">
+    @if (!isLoading()) {
+      <div class="assistant-panel__suggestions">
+        <button type="button" (click)="draft.set(draft() + '8500 steps'); resizeTextarea()">
+          8500 steps
+        </button>
+
+        <button
+          type="button"
+          (click)="draft.set(draft() + 'studied 45 min & read 20 min'); resizeTextarea()"
+        >
+          studied 45 min & read 20 min
+        </button>
+      </div>
+    }
+
+    <div class="assistant-panel__composer">
+      <textarea
+        #messageInput
+        rows="1"
+        maxlength="2000"
+        placeholder="e.g. 9200 steps and 2150 kcal"
+        aria-label="Message to assistant"
+        [value]="draft()"
+        (input)="onDraftInput(messageInput.value)"
+        (keydown.enter)="onEnter($event)"
+      ></textarea>
+
+      <button
+        type="button"
+        class="assistant-panel__send"
+        aria-label="Send message"
+        [disabled]="!draft().trim() || isLoading()"
+        (click)="sendMessage()"
+      >
+        <svg lucideArrowUp aria-hidden="true"></svg>
+      </button>
+    </div>
+  </footer>
+</aside>
