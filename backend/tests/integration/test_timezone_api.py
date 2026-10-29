@@ -8,7 +8,7 @@ pytestmark = pytest.mark.integration
 
 
 API_BASE_URL = os.getenv("CADENCE_API_BASE_URL", "http://127.0.0.1:8000")
-GOALS_PATH = os.getenv("CADENCE_GOALS_PATH", "/goals")
+GOALS_PATH = os.getenv("CADENCE_GOALS_PATH", "/api/v1/goals")
 TEST_TOKEN = os.getenv("CADENCE_TEST_TOKEN")
 
 
