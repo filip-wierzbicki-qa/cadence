@@ -261,6 +261,8 @@ def test_new_goals_are_appended_to_period() -> None:
         "X-Timezone": "Europe/Warsaw",
     }
 
+    created_goal_ids: list[str] = []
+
     with httpx.Client(
         base_url=API_BASE_URL,
         timeout=15.0,
@@ -272,21 +274,21 @@ def test_new_goals_are_appended_to_period() -> None:
                 name=f"[TEST {unique_suffix}] Goal",
                 period="daily",
             )
+            created_goal_ids.append(goal_1["id"])
+            
             goal_2 = create_goal(
                 client,
                 headers,
                 name=f"[TEST {unique_suffix}] Goal 2",
                 period="daily",
             )
+            created_goal_ids.append(goal_2["id"])
+
             assert goal_2["position"] == goal_1["position"] + 1
         finally:
-            archive_goal(
-                client,
-                headers,
-                goal_1["id"],
-            )
-            archive_goal(
-                client,
-                headers,
-                goal_2["id"],
-            )
+            for goal_id in created_goal_ids:
+                archive_goal(
+                    client,
+                    headers,
+                    goal_id,
+                )
