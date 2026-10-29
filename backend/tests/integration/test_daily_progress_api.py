@@ -19,10 +19,10 @@ API_BASE_URL = os.getenv(
 )
 
 # Ustaw zgodnie z rzeczywistym prefixem z /docs.
-# Jeśli endpointy widzisz jako /api/v1/goals, ustaw tę wartość w terminalu.
+# Domyślnie /api/v1/goals. Ustaw CADENCE_GOALS_PATH, jeśli endpointy są pod inną ścieżką.
 GOALS_PATH = os.getenv(
     "CADENCE_GOALS_PATH",
-    "/goals",
+    "/api/v1/goals",
 )
 
 TEST_TOKEN = os.getenv("CADENCE_TEST_TOKEN")

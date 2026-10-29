@@ -20,7 +20,7 @@ API_BASE_URL = os.getenv(
 
 GOALS_PATH = os.getenv(
     "CADENCE_GOALS_PATH",
-    "/goals",
+    "/api/v1/goals",
 )
 
 TEST_TOKEN = os.getenv("CADENCE_TEST_TOKEN")
