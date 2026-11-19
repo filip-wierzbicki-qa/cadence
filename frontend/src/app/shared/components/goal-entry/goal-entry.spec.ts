@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { GoalEntryDayResponse } from '@models/goalModel';
-import { GoalEntry } from './goal-entry';
+import { GoalEntry, QUICK_ACTION_DELAY_MS } from './goal-entry';
 
 const DAILY: GoalEntryDayResponse = {
   goal_id: 'g1',
@@ -11,6 +11,8 @@ const DAILY: GoalEntryDayResponse = {
   unit: 'L',
   period: 'daily',
   target_type: 'min',
+  quick_action_type: 'none',
+  quick_action_step: null,
   target_value: 2,
   entry_value: 1,
   period_value: 1,
@@ -27,6 +29,32 @@ const WEEKLY: GoalEntryDayResponse = {
   target_value: 20,
   entry_value: 2,
   period_value: 5,
+};
+
+// 10,000 steps logged today, step of 1,000, with a note.
+const STEPS: GoalEntryDayResponse = {
+  ...DAILY,
+  goal_id: 'g3',
+  name: 'Steps',
+  unit: 'steps',
+  target_value: 10_000,
+  entry_value: 10_000,
+  period_value: 10_000,
+  note: 'evening walk',
+  quick_action_type: 'increment',
+  quick_action_step: 1_000,
+};
+
+const CHECK: GoalEntryDayResponse = {
+  ...DAILY,
+  goal_id: 'g4',
+  name: 'Meditate',
+  unit: 'minutes',
+  target_value: 10,
+  entry_value: null,
+  period_value: 0,
+  note: null,
+  quick_action_type: 'check',
 };
 
 describe('GoalEntry', () => {
@@ -175,6 +203,331 @@ describe('GoalEntry', () => {
 
       renderWeekly(WEEKLY, null);
       expect(tag()).toBeUndefined();
+    });
+  });
+
+  describe('quick actions', () => {
+    const root = () => fixture.nativeElement as HTMLElement;
+    const button = (label: string) =>
+      root().querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)!;
+
+    function collectSaves(): { goalId: string; value: number; note: string | null }[] {
+      const saved: { goalId: string; value: number; note: string | null }[] = [];
+      component.entrySaved.subscribe((event) => saved.push(event));
+      return saved;
+    }
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    function clickAndSettle(label: string): void {
+      button(label).click();
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+    }
+
+    it('adds one step and keeps the note, even above the target', () => {
+      render(STEPS);
+      const saved = collectSaves();
+
+      clickAndSettle('Increase Steps');
+
+      expect(saved).toEqual([{ goalId: 'g3', value: 11_000, note: 'evening walk' }]);
+    });
+
+    it('saves one step from an empty entry', () => {
+      render({ ...STEPS, entry_value: null, period_value: 0, note: null });
+      const saved = collectSaves();
+
+      clickAndSettle('Increase Steps');
+
+      expect(saved).toEqual([{ goalId: 'g3', value: 1_000, note: null }]);
+    });
+
+    it('disables decrease when the entry is empty or zero', () => {
+      render({ ...STEPS, entry_value: null });
+      expect(button('Decrease Steps').disabled).toBe(true);
+
+      render({ ...STEPS, entry_value: 0 });
+      expect(button('Decrease Steps').disabled).toBe(true);
+
+      render(STEPS);
+      expect(button('Decrease Steps').disabled).toBe(false);
+    });
+
+    it('never decreases below zero', () => {
+      render({ ...STEPS, entry_value: 400 });
+      const saved = collectSaves();
+
+      clickAndSettle('Decrease Steps');
+
+      expect(saved[0].value).toBe(0);
+    });
+
+    it('does not leak floating-point noise into fractional steps', () => {
+      render({ ...STEPS, entry_value: 0.2, quick_action_step: 0.1 });
+      const saved = collectSaves();
+
+      clickAndSettle('Increase Steps');
+
+      expect(saved[0].value).toBe(0.3);
+    });
+
+    it("changes today's entry for weekly goals, not the weekly total", () => {
+      // Entry today is 2, the week so far is 5.
+      render({ ...WEEKLY, quick_action_type: 'increment', quick_action_step: 1 });
+      const saved = collectSaves();
+
+      clickAndSettle('Increase Running');
+
+      expect(saved[0].value).toBe(3);
+    });
+
+    it('derives the checkbox from the saved value', () => {
+      const checked = () => button('Meditate completed').getAttribute('aria-checked');
+
+      render(CHECK);
+      expect(checked()).toBe('false');
+
+      render({ ...CHECK, entry_value: 4 });
+      expect(checked()).toBe('false');
+
+      render({ ...CHECK, entry_value: 10 });
+      expect(checked()).toBe('true');
+
+      // A manual edit above the target still counts as done.
+      render({ ...CHECK, entry_value: 25 });
+      expect(checked()).toBe('true');
+    });
+
+    it('saves the target when switched on, keeping the note', () => {
+      render({ ...CHECK, note: 'felt calm' });
+      const saved = collectSaves();
+
+      clickAndSettle('Meditate completed');
+
+      expect(saved).toEqual([{ goalId: 'g4', value: 10, note: 'felt calm' }]);
+    });
+
+    it('saves an explicit 0 when switched off, also above the target, and never deletes', () => {
+      render({ ...CHECK, entry_value: 25 });
+      const saved = collectSaves();
+      const deleted = vi.fn();
+      component.entryDeleted.subscribe(deleted);
+
+      clickAndSettle('Meditate completed');
+
+      expect(saved).toEqual([{ goalId: 'g4', value: 0, note: null }]);
+      expect(deleted).not.toHaveBeenCalled();
+    });
+
+    it('renders no quick controls when disabled or while the editor is open', () => {
+      render(DAILY);
+      expect(root().querySelector('.goal-entry__quick')).toBeNull();
+
+      render(STEPS, true);
+      expect(root().querySelector('.goal-entry__quick')).toBeNull();
+    });
+
+    it('keeps the buttons usable during a save and sends the newest value once it ends', () => {
+      render(STEPS);
+      const saved = collectSaves();
+
+      // First burst goes out and the parent starts saving.
+      button('Increase Steps').click();
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+      fixture.componentRef.setInput('isSaving', true);
+      fixture.detectChanges();
+      expect(saved).toHaveLength(1);
+
+      // The user keeps going while that request is still running.
+      expect(button('Increase Steps').disabled).toBe(false);
+      button('Increase Steps').click();
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+
+      // Still one request at a time...
+      expect(saved).toHaveLength(1);
+
+      // ...and the waiting value follows as soon as the save ends.
+      fixture.componentRef.setInput('isSaving', false);
+      fixture.detectChanges();
+
+      expect(saved.map((event) => event.value)).toEqual([11_000, 12_000]);
+    });
+
+    it('does not resend a value that is already on its way', () => {
+      render(STEPS);
+      const saved = collectSaves();
+
+      button('Increase Steps').click();
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+      fixture.componentRef.setInput('isSaving', true);
+      fixture.detectChanges();
+
+      // + then − while the first request runs lands on the value that was already sent.
+      button('Increase Steps').click();
+      button('Decrease Steps').click();
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+      fixture.componentRef.setInput('isSaving', false);
+      fixture.detectChanges();
+
+      expect(saved).toHaveLength(1);
+    });
+
+    it('shows a save error outside the editor', () => {
+      render(STEPS);
+      fixture.componentRef.setInput('saveError', "Couldn't save your entry. Try again.");
+      fixture.detectChanges();
+
+      expect(root().querySelector('[role="alert"]')?.textContent).toContain("Couldn't save");
+    });
+
+    const current = () => root().querySelector('.goal-entry__current')?.textContent?.trim();
+
+    it('combines rapid clicks into one save after the pause', () => {
+      render(STEPS);
+      const saved = collectSaves();
+
+      for (let i = 0; i < 4; i++) {
+        button('Increase Steps').click();
+        vi.advanceTimersByTime(100);
+      }
+
+      // 100 ms after the last click, the pause has not passed yet.
+      expect(saved).toEqual([]);
+
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+
+      expect(saved).toEqual([{ goalId: 'g3', value: 14_000, note: 'evening walk' }]);
+    });
+
+    it('shows the new value at once, before anything is saved', () => {
+      render(STEPS);
+      const saved = collectSaves();
+
+      button('Increase Steps').click();
+      fixture.detectChanges();
+
+      expect(current()).toBe('11,000');
+      expect(saved).toEqual([]);
+    });
+
+    it('shows the weekly total with the pending change, leaving earlier days alone', () => {
+      // Entry today is 2, earlier days 3, week total 5.
+      render({ ...WEEKLY, quick_action_type: 'increment', quick_action_step: 1 });
+
+      button('Increase Running').click();
+      fixture.detectChanges();
+
+      expect(current()).toBe('6');
+      expect(root().textContent).toContain('Earlier this week: 3 km');
+    });
+
+    it('does not save clicks that cancel out', () => {
+      render(STEPS);
+      const saved = collectSaves();
+
+      button('Increase Steps').click();
+      button('Decrease Steps').click();
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+
+      expect(saved).toEqual([]);
+    });
+
+    it('does not create an entry when clicks from an empty day cancel out', () => {
+      render({ ...STEPS, entry_value: null, period_value: 0, note: null });
+      const saved = collectSaves();
+
+      button('Increase Steps').click();
+      fixture.detectChanges(); // enables the decrease button
+      button('Decrease Steps').click();
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+
+      expect(saved).toEqual([]);
+    });
+
+    it('rolls back to the stored value when the save fails', () => {
+      render(STEPS);
+
+      button('Increase Steps').click();
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+      fixture.detectChanges();
+      expect(current()).toBe('11,000');
+
+      fixture.componentRef.setInput('saveError', "Couldn't save your entry. Try again.");
+      fixture.detectChanges();
+
+      expect(current()).toBe('10,000');
+    });
+
+    it('saves unsaved clicks when the card is destroyed', () => {
+      render(STEPS);
+      const saved = collectSaves();
+
+      button('Increase Steps').click();
+      fixture.destroy();
+
+      expect(saved).toEqual([{ goalId: 'g3', value: 11_000, note: 'evening walk' }]);
+    });
+
+    it('hands unsaved clicks to the editor instead of saving them in the background', () => {
+      render(STEPS);
+      const saved = collectSaves();
+
+      button('Increase Steps').click();
+      component.startEditing();
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+
+      expect(component.entryValue()).toBe(11_000);
+      expect(saved).toEqual([]);
+    });
+
+    it('moves the ring together with the pending value', () => {
+      render({ ...STEPS, entry_value: 5_000, period_value: 5_000 });
+      const ring = () => root().querySelector('.goal-entry__ring')?.getAttribute('aria-label');
+      expect(ring()).toBe('50% of target');
+
+      button('Increase Steps').click();
+      fixture.detectChanges();
+
+      expect(ring()).toBe('60% of target');
+    });
+
+    it('marks the number as unconfirmed until fresh data arrives', () => {
+      const dimmed = () => root().querySelector('.goal-entry__current--unconfirmed') !== null;
+
+      render(STEPS);
+      expect(dimmed()).toBe(false);
+
+      button('Increase Steps').click();
+      fixture.detectChanges();
+      expect(dimmed()).toBe(true);
+
+      render({ ...STEPS, entry_value: 11_000, period_value: 11_000 });
+      expect(dimmed()).toBe(false);
+    });
+
+    it('offers Retry after a failed save and sends the same value again', () => {
+      render(STEPS);
+      const saved = collectSaves();
+
+      button('Increase Steps').click();
+      vi.advanceTimersByTime(QUICK_ACTION_DELAY_MS);
+      fixture.componentRef.setInput('saveError', "Couldn't save your entry. Try again.");
+      fixture.detectChanges();
+
+      const retry = root().querySelector<HTMLButtonElement>('.goal-entry__retry');
+      expect(retry).not.toBeNull();
+
+      retry!.click();
+
+      expect(saved.map((event) => event.value)).toEqual([11_000, 11_000]);
+    });
+
+    it('groups decrease and increase in one labelled control', () => {
+      render(STEPS);
+
+      const group = root().querySelector('.goal-entry__stepper');
+      expect(group?.getAttribute('role')).toBe('group');
+      expect(group?.querySelectorAll('button')).toHaveLength(2);
     });
   });
 

@@ -1,5 +1,12 @@
 @use '../../../../styles/utilities/mixins' as m;
 
+@keyframes goal-entry-tick-in {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+
 @keyframes goal-entry-editor-in {
   from {
     opacity: 0;
@@ -196,6 +203,13 @@
     font-weight: var(--font-weight-bold);
     letter-spacing: -0.03em;
     line-height: 1;
+
+    transition: opacity 150ms ease;
+
+    // Shown, but not yet confirmed by the server.
+    &--unconfirmed {
+      opacity: 0.6;
+    }
   }
 
   &__hint {
@@ -233,7 +247,6 @@
 
     &:hover {
       border-color: color-mix(in srgb, var(--goal-color) 32%, var(--color-border));
-
       background: color-mix(in srgb, var(--goal-color) 10%, var(--color-surface-hover));
     }
 
@@ -249,6 +262,150 @@
 
     > svg {
       width: var(--space-5);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: var(--space-2);
+    align-items: stretch;
+
+    // The primary button takes whatever the quick controls leave.
+    .goal-entry__action {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__quick {
+    display: grid;
+    place-items: center;
+
+    flex: none;
+    width: 3.25rem;
+
+    border: 1px solid color-mix(in srgb, var(--goal-color) 18%, var(--color-border));
+    border-radius: var(--radius-control);
+
+    background: color-mix(in srgb, var(--goal-color) 5%, var(--color-surface-hover));
+    color: var(--color-text-primary);
+
+    cursor: pointer;
+
+    transition:
+      border-color 150ms ease,
+      background 150ms ease,
+      transform 100ms ease-out,
+      opacity 150ms ease;
+
+    &:hover:not(:disabled) {
+      border-color: color-mix(in srgb, var(--goal-color) 32%, var(--color-border));
+      background: color-mix(in srgb, var(--goal-color) 10%, var(--color-surface-hover));
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--goal-color);
+      outline-offset: 2px;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    > svg {
+      width: var(--space-5);
+    }
+
+    // Reduced motion keeps the colour feedback and drops the press-down movement.
+    @media (prefers-reduced-motion: reduce) {
+      transition:
+        border-color 150ms ease,
+        background 150ms ease,
+        opacity 150ms ease;
+
+      &:active:not(:disabled) {
+        transform: none;
+      }
+    }
+  }
+
+  // The minus and plus buttons read as one control: shared edge, rounded only on the outside.
+  &__stepper {
+    display: flex;
+    flex: none;
+
+    .goal-entry__quick {
+      width: 3rem;
+
+      // The raised button keeps its whole border visible over its neighbour.
+      &:hover:not(:disabled),
+      &:focus-visible {
+        position: relative;
+        z-index: 1;
+      }
+
+      &:first-child {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+
+      &:last-child {
+        margin-left: -1px;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+    }
+  }
+
+  &__check {
+    border-color: color-mix(in srgb, var(--goal-color) 45%, var(--color-border));
+
+    &::before {
+      content: '';
+
+      grid-area: 1 / 1;
+      width: 1.5rem;
+      aspect-ratio: 1;
+
+      border: 1px solid var(--color-text-secondary);
+      border-radius: 50%;
+
+      transition:
+        background 150ms ease,
+        border-color 150ms ease;
+    }
+
+    > svg {
+      grid-area: 1 / 1;
+      width: 0.875rem;
+
+      color: var(--color-button-text);
+
+      // The tick is created when the box becomes checked, so it can grow in.
+      animation: goal-entry-tick-in 160ms ease-out;
+
+      @media (prefers-reduced-motion: reduce) {
+        animation: none;
+      }
+    }
+
+    &:hover:not(:disabled) {
+      border-color: color-mix(in srgb, var(--goal-color) 32%, var(--color-border));
+      background: color-mix(in srgb, var(--goal-color) 10%, var(--color-surface-hover));
+
+      &::before {
+        border-color: var(--goal-color);
+      }
+    }
+
+    &[aria-checked='true']::before {
+      border-color: var(--goal-color);
+      background: var(--goal-color);
     }
   }
 
@@ -313,6 +470,25 @@
     color: var(--color-score-needs-work);
 
     font-size: var(--font-size-sm);
+  }
+
+  &__retry {
+    padding: 0;
+    border: 0;
+
+    background: transparent;
+    color: inherit;
+
+    font: inherit;
+    font-weight: var(--font-weight-semibold);
+    text-decoration: underline;
+
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--goal-color);
+      outline-offset: 2px;
+    }
   }
 
   &__editor-actions {
